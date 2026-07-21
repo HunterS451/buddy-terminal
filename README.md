@@ -43,6 +43,56 @@ Prepend a new object to the `posts` array in `data/posts.json`:
 `timestamp` is ISO-8601. The page sorts by timestamp, so file order doesn't matter.
 Blank lines (`\n\n`) in `body` become separate paragraphs.
 
+## Visitor counter
+
+The status header shows `VISITORS: 000042`. It is **off until you configure it**, and
+while it's off the page shows `------` and makes **no requests to anyone**.
+
+It is a real count or it is nothing. There is no fallback number: if the service is
+unreachable, blocked, or misconfigured, the dashes stay. Nothing is ever estimated,
+cached, or carried over.
+
+### Service used: [GoatCounter](https://www.goatcounter.com)
+
+Open-source, privacy-focused analytics by Martin Tournoij (Ireland); servers at
+Hetzner in Finland/Germany. Per [its privacy policy](https://www.goatcounter.com/help/privacy):
+
+- **No IP addresses stored.** No full User-Agent, no tracker ID.
+- **Nothing stored in the visitor's browser** — no cookies, no localStorage.
+- Only aggregate per-day/per-hour counts, with no way to link rows together.
+- No data shared with third parties.
+- To de-duplicate repeat visits it holds `hash(siteID, User-Agent, IP)` **in memory
+  for 8 hours**, mapped to a random UUID; that hash is never written to disk.
+
+This page uses GoatCounter's [tracking pixel](https://www.goatcounter.com/help/pixel)
+(a 1×1 `<img>`), so **no third-party JavaScript runs here at all**. The trade-off is
+that pixel-based counting catches more crawler traffic than the JS integration does,
+so expect some bot inflation on a public site.
+
+The number shown is *visits* (one per person per 8 hours), not raw page loads —
+"VISITORS" is the accurate word for it. GoatCounter caches totals for **up to four
+hours**, so a fresh visit won't appear immediately.
+
+### Setup (two steps, ~2 minutes)
+
+1. Sign up free at [goatcounter.com](https://www.goatcounter.com) and pick a code —
+   your dashboard becomes `YOURCODE.goatcounter.com`. An email address is required.
+2. In **Settings → "Allow adding visitor counts on your website"**, turn it **on**.
+   It defaults to off, and the counter will not work until you do this.
+
+Then set the code at the top of `js/app.js`:
+
+```js
+const GOATCOUNTER_CODE = "yourcode";
+```
+
+Commit and push. To turn the counter off again, set it back to `""` — the page
+immediately stops contacting anyone.
+
+> If you ever add a Content-Security-Policy, allow
+> `img-src https://YOURCODE.goatcounter.com` and
+> `connect-src https://YOURCODE.goatcounter.com`.
+
 ## GitHub Pages setup
 
 **Recommended: a dedicated *project* repo, not the `username.github.io` user site.**

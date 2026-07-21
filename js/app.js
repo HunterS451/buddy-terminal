@@ -8,6 +8,23 @@
    ============================================================ */
 "use strict";
 
+/* ============================================================
+   VISITOR COUNTER — configure here, or leave blank to disable.
+
+   Put your GoatCounter site code here (just the code: if your dashboard is
+   at buddyterminal.goatcounter.com, this is "buddyterminal").
+
+   While this is blank the counter is OFF: the page renders "------" and makes
+   ZERO requests to any third party. Nothing is sent anywhere until you fill
+   it in. See README.md → "Visitor counter" for the two setup steps.
+   ============================================================ */
+const GOATCOUNTER_CODE = "";
+
+/* Digits in the readout, e.g. 42 -> "000042". Bigger numbers are NOT truncated. */
+const VISITOR_DIGITS = 6;
+/* Shown before the real count arrives, and left in place if it never does. */
+const VISITOR_PLACEHOLDER = "-".repeat(VISITOR_DIGITS);
+
 const METER_CELLS = 20;   // width of the [██████░░░░] bars
 
 /* Build a phosphor bar for a 0..100 value: filled cells + empty cells. */
@@ -88,7 +105,71 @@ function renderStatus(s) {
       <div class="label">Mode</div><div class="meter"></div><div class="value">${modeBadge}</div>
       <div class="label">Last Active</div><div class="meter"></div>
         <div class="value">${esc(fmtStamp(s.last_active))}</div>
+      <div class="label">Visitors</div><div class="meter"></div>
+        <div class="value visitors" id="visitor-count"
+             title="Real count from GoatCounter (no cookies, no IPs stored). Totals are cached up to 4 hours, so this can lag.">${VISITOR_PLACEHOLDER}</div>
     </div>`;
+}
+
+/* ----------------------- VISITOR COUNTER -----------------------
+   A REAL count, or nothing. Two independent halves:
+
+     record  — a 1x1 tracking pixel (<img>). No third-party JavaScript runs on
+               this page and nothing is stored in your browser: GoatCounter sets
+               no cookies and no localStorage. It keeps aggregate daily counts,
+               not IP addresses.
+     display — fetch the site total as JSON and paint it in phosphor.
+
+   The two are deliberately separate: the fetch only READS a number, so a
+   display failure can never lose a visit, and a blocked pixel can never blank
+   the readout. If anything fails — offline, blocked, service down, counter not
+   enabled in GoatCounter's settings — the dashes stay. We never invent, cache,
+   estimate, or carry over a number. A counter that lies is worse than none. */
+function goatcounterBase() {
+  const code = String(GOATCOUNTER_CODE || "").trim();
+  // Site codes are plain hostname labels; refuse anything else rather than
+  // building a URL out of it.
+  return /^[a-z0-9-]+$/i.test(code) ? `https://${code}.goatcounter.com` : null;
+}
+
+/* Record this pageview. Fire-and-forget; failure is silent by design. */
+function countVisit(base) {
+  const img = new Image(1, 1);
+  img.alt = "";
+  img.setAttribute("aria-hidden", "true");
+  img.referrerPolicy = "no-referrer";
+  img.style.position = "absolute";
+  img.style.left = "-9999px";
+  img.src = `${base}/count?p=${encodeURIComponent(location.pathname)}` +
+            `&t=${encodeURIComponent(document.title)}`;
+  document.body.appendChild(img);
+}
+
+/* Paint the site-wide total. Leaves the dashes untouched on any failure. */
+async function showVisitorCount(base) {
+  const el = document.getElementById("visitor-count");
+  if (!el) return;
+  try {
+    // "TOTAL" is GoatCounter's special path for the whole-site figure.
+    const resp = await fetch(`${base}/counter/TOTAL.json`, { cache: "no-store" });
+    if (!resp.ok) throw new Error(`counter -> HTTP ${resp.status}`);
+    const data = await resp.json();
+    // `count` arrives as a formatted string ("1,234"); keep only the digits.
+    const digits = String(data.count ?? "").replace(/[^0-9]/g, "");
+    if (!digits) throw new Error(`unparseable count: ${JSON.stringify(data.count)}`);
+    el.textContent = digits.padStart(VISITOR_DIGITS, "0");
+    el.classList.add("live");
+  } catch (err) {
+    // Honest failure: say nothing, show nothing, keep the dashes.
+    console.warn("visitor counter unavailable:", err);
+  }
+}
+
+function initVisitorCounter() {
+  const base = goatcounterBase();
+  if (!base) return;          // not configured: no requests, dashes stay
+  countVisit(base);
+  showVisitorCount(base);
 }
 
 /* ----------------------- ATTACHED PHOTOS -----------------------
@@ -173,4 +254,7 @@ function showFetchError(where) {
     console.error(err);
     showFetchError((err && err.message) || "data files");
   }
+  // Runs regardless: a visit still counts even if Buddy's data files are
+  // unreachable, and the counter is independent of them.
+  initVisitorCounter();
 })();
