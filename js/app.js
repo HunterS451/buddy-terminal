@@ -256,6 +256,14 @@ async function pollStatus() {
   } catch (err) {
     console.warn("status poll failed; keeping last known values:", err);
   }
+  // The scan is published on the same cadence, so refresh it on the same beat. A
+  // failed read leaves the previous scope alone; only its own timestamp going stale
+  // may turn it into NO SCAN.
+  try {
+    renderScan(await loadJSON("data/scan.json"));
+  } catch (err) {
+    console.warn("scan poll failed; keeping last known scope:", err);
+  }
 }
 
 /* ----------------------- VISITOR COUNTER -----------------------
@@ -416,6 +424,183 @@ function renderIdentity(doc) {
   section.hidden = false;
 }
 
+/* ----------------------- LIDAR SCOPE -----------------------
+   ONE sweep, drawn as a radial scope. Not a map, not live, not a floor plan -
+   Buddy has no SLAM and no reliable position, so a floor plan would have to be
+   invented. This is the honest alternative: what the sensor measured, from
+   wherever it happened to be standing, at one moment.
+
+   Three rules hold this together, and all three are load-bearing:
+
+   1. BLIPS ONLY. The returns are never joined into a polygon or an outline.
+      Connecting two measurements would draw a wall between them that nothing
+      measured - the single most tempting way for this picture to lie.
+   2. ABSENT IS ABSENT. Bearings with no return simply have no dot. The robot
+      omits them from the file entirely, so there is no value here to pad out to
+      max range, and empty space on the scope means "not measured" - never "clear".
+   3. STALE MEANS NO SCAN. Past the freshness budget the scope is not drawn at
+      all. An old sweep rendered as a ring of blips would read as a live picture
+      of a room that may have changed completely.
+
+   Sweep density is NOT known ahead of time - how many of the 360 bearings a real
+   sweep returns has never been measured on hardware. So nothing here assumes a
+   full ring: the count is reported, and one blip renders as correctly as three
+   hundred. */
+const SCOPE_SIZE = 400;      // SVG viewBox, scales fluidly via CSS
+const SCOPE_R = 168;         // radius in viewBox units at max_range_cm
+
+/* Same shape as liveness(), against the scan's own stamp and budget. */
+function scanFreshness(doc, nowMs = Date.now()) {
+  const t = stampMs(doc && doc.taken_at);
+  if (isNaN(t)) return { known: false, fresh: false, takenMs: NaN, ageSec: NaN };
+  const ageSec = Math.max(0, (nowMs - t) / 1000);
+  const limit = Number(doc.stale_after_sec) > 0
+    ? Number(doc.stale_after_sec) : STALE_AFTER_FALLBACK;
+  return { known: true, fresh: ageSec <= limit, takenMs: t, ageSec };
+}
+
+/* Bearing -> viewBox point. 0 deg is dead ahead (up) and angles increase
+   CLOCKWISE, matching the robot's own convention (x = right, y = forward). */
+function scopeXY(deg, r) {
+  const th = (Number(deg) || 0) * Math.PI / 180;
+  return [SCOPE_SIZE / 2 + r * Math.sin(th), SCOPE_SIZE / 2 - r * Math.cos(th)];
+}
+
+/* Plotted range: the furthest actual return, rounded up to a tidy step and capped at
+   the sensor limit - a scope fixed at max range would draw a 2m room as a dot in the
+   middle. This is a zoom, not a distortion: the rings carry their real distance in
+   cm, so the scale is always legible rather than assumed. */
+function scopeSpan(pts, max) {
+  const far = pts.reduce((m, p) => {
+    const d = Number(Array.isArray(p) ? p[1] : NaN);
+    return isFinite(d) && d > 0 && d <= max ? Math.max(m, d) : m;
+  }, 0);
+  if (!far) return max;
+  return Math.min(max, Math.max(60, Math.ceil(far / 30) * 30));
+}
+
+function scopeSVG(doc) {
+  const max = Number(doc.max_range_cm) > 0 ? Number(doc.max_range_cm) : 600;
+  const pts = Array.isArray(doc.points) ? doc.points : [];
+  const span = scopeSpan(pts, max);
+  const c = SCOPE_SIZE / 2;
+  const parts = [];
+
+  for (let i = 1; i <= 3; i++) {                    // range rings, labelled in cm
+    const cm = (span / 3) * i;
+    const r = SCOPE_R * (cm / span);
+    parts.push(`<circle class="scope-ring" cx="${c}" cy="${c}" r="${r.toFixed(1)}"/>`);
+    parts.push(`<text class="scope-ringlbl" x="${c + 5}" y="${(c - r + 12).toFixed(1)}">${Math.round(cm)}cm</text>`);
+  }
+  for (let a = 0; a < 360; a += 45) {               // bearing spokes
+    const [x, y] = scopeXY(a, SCOPE_R);
+    parts.push(`<line class="scope-spoke" x1="${c}" y1="${c}" x2="${x.toFixed(1)}" y2="${y.toFixed(1)}"/>`);
+  }
+  [[0, "0"], [90, "90"], [180, "180"], [270, "270"]].forEach(([a, t]) => {
+    const [x, y] = scopeXY(a, SCOPE_R + 15);
+    parts.push(`<text class="scope-brg" x="${x.toFixed(1)}" y="${(y + 4).toFixed(1)}">${t}°</text>`);
+  });
+  // The measurements themselves. Discrete dots, deliberately unconnected.
+  pts.forEach((p) => {
+    const a = Number(Array.isArray(p) ? p[0] : NaN);
+    const d = Number(Array.isArray(p) ? p[1] : NaN);
+    if (!isFinite(a) || !isFinite(d) || d <= 0 || d > max) return;
+    const [x, y] = scopeXY(a, SCOPE_R * Math.min(1, d / span));
+    parts.push(`<circle class="scope-blip" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.2"/>`);
+  });
+  parts.push(`<circle class="scope-origin" cx="${c}" cy="${c}" r="3.4"/>`);
+
+  return `<svg class="scope-svg" viewBox="0 0 ${SCOPE_SIZE} ${SCOPE_SIZE}"
+      role="img" aria-label="Radial plot of ${pts.length} LiDAR returns measured around Buddy">
+      ${parts.join("")}
+    </svg>`;
+}
+
+/* The measured text facts: one survey run, plus the lifetime aggregate. */
+function scopeFacts(doc) {
+  const rows = [];
+  const sv = doc && doc.survey;
+  if (sv) {
+    const when = sv.taken_at ? fmtStamp(sv.taken_at) : "—";
+    rows.push(`<div class="scope-fact"><span class="k">Survey</span>
+      <span class="v">${esc(when)}</span></div>`);
+    if (sv.selection) {
+      rows.push(`<div class="scope-note">${esc(sv.selection)}${
+        sv.runs_on_file ? `, of ${esc(String(sv.runs_on_file))} on file` : ""}</div>`);
+    }
+    const bits = [];
+    if (sv.stations) bits.push(`${sv.stations} vantage point${sv.stations === 1 ? "" : "s"}`);
+    if (Array.isArray(sv.sectors) && sv.sectors.length) bits.push(`${sv.sectors.length} bearings measured`);
+    if (sv.reason) bits.push(`ended: ${sv.reason}`);
+    if (bits.length) rows.push(`<div class="scope-fact"><span class="k">Run</span>
+      <span class="v">${esc(bits.join(" · "))}</span></div>`);
+
+    const exits = Array.isArray(sv.exits) ? sv.exits : [];
+    rows.push(`<div class="scope-fact"><span class="k">Ways out</span><span class="v">${
+      exits.length
+        ? exits.map((e) => `${esc(String(Math.round(e.world_deg)))}° at ${
+            esc(String(Math.round(e.clearance_cm)))}cm${
+            e.description ? ` — “${esc(e.description)}”` : ""}`).join("; ")
+        : "none found on that run"}</span></div>`);
+
+    const seen = (Array.isArray(sv.sectors) ? sv.sectors : [])
+      .map((s) => s.description).filter(Boolean);
+    if (seen.length) {
+      rows.push(`<div class="scope-fact"><span class="k">Camera saw</span><span class="v">${
+        seen.map((s) => `“${esc(s)}”`).join(", ")}</span></div>`);
+    }
+  }
+  const lt = doc && doc.lifetime;
+  if (lt && (lt.distance_m != null || lt.sessions != null)) {
+    rows.push(`<div class="scope-fact"><span class="k">Lifetime</span><span class="v">${
+      esc(String(lt.distance_m ?? "—"))} m driven across ${
+      esc(String(lt.sessions ?? "—"))} sessions</span></div>`);
+  }
+  return rows.join("");
+}
+
+function renderScan(doc) {
+  const section = document.getElementById("scope");
+  const body = document.getElementById("scope-body");
+  const title = document.getElementById("scope-title");
+  if (!section || !body) return;
+  if (!doc) { section.hidden = true; return; }      // scan publishing is off
+  section.hidden = false;
+
+  const f = scanFreshness(doc);
+  const pts = Array.isArray(doc.points) ? doc.points : [];
+
+  if (!f.known || !f.fresh || !pts.length) {
+    // No honest picture to draw. Say so in words - never an empty ring, which
+    // would read as a room with nothing in it.
+    if (title) title.textContent = "NO SCAN";
+    body.innerHTML = `
+      <div class="scope-none">
+        <div class="scope-none-tag">NO SCAN</div>
+        <div class="scope-none-why">${
+          !f.known ? "No sweep has been published."
+          : !pts.length ? "The last sweep returned no measurements."
+          : `Last sweep was ${esc(fmtStamp(doc.taken_at))} — too old to show as current.`
+        } This is not a reading of an empty room; it means nothing was measured.</div>
+      </div>`;
+    return;
+  }
+  if (title) title.textContent = `LAST SCAN — ${fmtStamp(doc.taken_at).slice(11)}`;
+  body.innerHTML = `
+    <div class="scope-wrap">${scopeSVG(doc)}</div>
+    <div class="scope-meta">
+      <div class="scope-fact"><span class="k">Taken</span>
+        <span class="v">${esc(fmtStamp(doc.taken_at))}</span></div>
+      <div class="scope-fact"><span class="k">Returns</span>
+        <span class="v">${esc(String(doc.bins_returned ?? pts.length))} of ${
+          esc(String(doc.bins_possible ?? 360))} bearings measured · furthest ${
+          esc(String(Math.round(pts.reduce((m, p) => Math.max(m, Number(p[1]) || 0), 0))))}cm
+          of ${esc(String(doc.max_range_cm ?? "—"))}cm sensor range</span></div>
+      ${scopeFacts(doc)}
+      ${doc.frame ? `<div class="scope-note">${esc(doc.frame)}</div>` : ""}
+    </div>`;
+}
+
 /* ----------------------- LOG FEED ----------------------- */
 function renderFeed(posts) {
   const el = document.getElementById("feed-body");
@@ -455,17 +640,21 @@ function showFetchError(where) {
   try {
     // identity.json is OPTIONAL: it resolves to null rather than rejecting, so a
     // missing gallery can never cost the reader the status header or the log feed.
-    const [status, posts, identity] = await Promise.all([
+    const [status, posts, identity, scan] = await Promise.all([
       loadJSON("data/status.json"),
       loadJSON("data/posts.json"),
       loadJSON("data/identity.json").catch((err) => {
         console.warn("visual ID unavailable:", err);
         return null;
       }),
+      // Absent whenever scan publishing is off (its default). Null hides the
+      // section entirely rather than showing an empty scope.
+      loadJSON("data/scan.json").catch(() => null),
     ]);
     applyStatus(status);
     renderIdentity(identity);     // MUST precede renderFeed - it fills identityFiles
     renderFeed(posts);
+    renderScan(scan);
     setInterval(pollStatus, STATUS_POLL_SEC * 1000);
   } catch (err) {
     console.error(err);

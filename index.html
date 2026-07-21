@@ -39,6 +39,17 @@
       <div class="identity-body" id="identity-body"></div>
     </section>
 
+    <!-- ===================== LIDAR SCOPE =====================
+         ONE LiDAR sweep, plotted radially. Deliberately NOT called a map: Buddy has
+         no SLAM and no reliable position, so a floor plan would have to be invented.
+         Hidden unless data/scan.json exists (publishing it is off by default, since
+         it discloses the geometry of a room in a private home). -->
+    <section class="panel scope" id="scope" aria-label="Last LiDAR scan" hidden>
+      <div class="panel-title"><span class="prompt">&gt;</span>
+        <span id="scope-title">LAST SCAN</span></div>
+      <div class="scope-body" id="scope-body"></div>
+    </section>
+
     <!-- ===================== POST FEED ===================== -->
     <section class="panel feed" id="feed" aria-label="Log feed">
       <div class="panel-title"><span class="prompt">&gt;</span> LOG FEED &mdash; newest first</div>

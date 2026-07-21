@@ -272,6 +272,80 @@ html, body {
 }
 .photo-elsewhere::before { content: "// "; opacity: 0.75; }
 
+/* ======================= LIDAR SCOPE ======================= */
+.scope[hidden] { display: none; }
+
+.scope-body { display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start; }
+
+/* The scope holds a square aspect and shrinks on narrow screens rather than
+   forcing the panel to scroll sideways. */
+.scope-wrap { flex: 0 0 auto; width: min(340px, 100%); }
+.scope-svg { display: block; width: 100%; height: auto; }
+
+.scope-ring   { fill: none; stroke: var(--phosphor-faint); stroke-width: 1; }
+.scope-spoke  { stroke: var(--phosphor-faint); stroke-width: 1; opacity: 0.55; }
+.scope-ringlbl,
+.scope-brg {
+  fill: var(--phosphor-dim);
+  font-family: inherit;
+  font-size: 11px;
+  text-anchor: middle;
+}
+.scope-ringlbl { text-anchor: start; opacity: 0.8; }
+
+/* One measurement = one dot. There is deliberately no polygon or outline joining
+   them: a line between two returns would draw a wall that nothing measured. */
+.scope-blip {
+  fill: var(--phosphor);
+  filter: drop-shadow(0 0 2px rgba(51, 255, 102, 0.85));
+}
+.scope-origin { fill: var(--amber-alert); }
+
+.scope-meta { flex: 1 1 260px; min-width: 0; }
+.scope-fact {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 6px;
+  font-size: 0.92rem;
+  line-height: 1.45;
+}
+.scope-fact .k {
+  flex: 0 0 8.5em;
+  color: var(--phosphor-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.scope-fact .v { flex: 1 1 auto; min-width: 0; color: var(--phosphor); }
+.scope-note {
+  color: var(--phosphor-faint);
+  font-size: 0.82rem;
+  margin: 8px 0 12px;
+  max-width: var(--prose-max);
+}
+.scope-note::before { content: "// "; opacity: 0.75; }
+
+/* NO SCAN: amber, wordy, and unmistakably not a picture of an empty room. */
+.scope-none { padding: 6px 0 2px; }
+.scope-none-tag {
+  display: inline-block;
+  border: 1px dashed var(--amber-alert);
+  color: var(--amber-alert);
+  padding: 2px 10px;
+  letter-spacing: 0.14em;
+  margin-bottom: 8px;
+}
+.scope-none-why {
+  color: var(--phosphor-dim);
+  font-size: 0.9rem;
+  max-width: var(--prose-max);
+}
+
+@media (max-width: 560px) {
+  .scope-body { gap: 14px; }
+  .scope-fact { display: block; }
+  .scope-fact .k { display: block; margin-bottom: 1px; }
+}
+
 /* ======================= LOG FEED ======================= */
 .log-entry {
   border-left: 2px solid var(--phosphor-faint);
