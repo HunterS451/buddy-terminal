@@ -8,5 +8,9 @@
     "honesty": 95
   },
   "mode": "IDLE",
-  "last_active": "2026-07-21T02:22:52-07:00"
+  "started_at": "2026-07-21T06:08:49-07:00",
+  "uptime_sec": 0,
+  "heartbeat": "2026-07-21T06:08:49-07:00",
+  "stale_after_sec": 4500,
+  "last_active": "2026-07-21T06:08:49-07:00"
 }
