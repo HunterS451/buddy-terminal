@@ -178,6 +178,19 @@ function mediaEntries(post) {
     .filter((m) => MEDIA_OK.test(m.file));
 }
 
+/* How many columns a strip of n photos should use on a wide screen.
+   The strip centres its trailing row itself, so the only job here is to avoid
+   a lonely last photo sitting under a full row: 7 photos in 3 columns is
+   3+3+1, which reads as a mistake; in 4 columns it is 4+3 with the 3 centred,
+   which reads as a deliberate layout. CSS caps this down on narrow screens. */
+function photoColumns(n) {
+  if (n <= 1) return 1;
+  if (n === 2 || n === 4) return 2;   // 2, and 2+2 rather than one flat row
+  if (n % 3 === 0) return 3;          // 3, 6, 9 … exact rows
+  if (n % 4 === 0) return 4;          // 8, 12 … exact rows
+  return n > 6 ? 4 : 3;               // 5 -> 3+2, 7 -> 4+3, 10 -> 4+4+2
+}
+
 function renderPhotos(post) {
   const shots = mediaEntries(post);
   if (!shots.length) return "";
@@ -194,7 +207,8 @@ function renderPhotos(post) {
         ${m.caption ? `<figcaption>${esc(m.caption)}</figcaption>` : ""}
       </figure>`;
   }).join("\n");
-  return `<div class="photo-strip${shots.length === 1 ? " single" : ""}">${figures}</div>`;
+  const cols = photoColumns(shots.length);
+  return `<div class="photo-strip${shots.length === 1 ? " single" : ""}" data-cols="${cols}">${figures}</div>`;
 }
 
 /* ----------------------- LOG FEED ----------------------- */

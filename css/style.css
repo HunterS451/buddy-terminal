@@ -17,6 +17,16 @@
   --bg:              #050805;   /* near-black with a green cast */
   --bg-panel:        #060d06;
   --glow: 0 0 2px rgba(51, 255, 102, 0.55), 0 0 6px rgba(51, 255, 102, 0.30);
+
+  /* Width of the screen itself. Wide enough that a desktop isn't mostly black
+     margin, capped so an ultrawide monitor still shows a centred terminal
+     rather than one stretched wall-to-wall. */
+  --shell-max: 1140px;
+  /* Longest comfortable prose line, in characters. The panel may be wide; a
+     paragraph inside it still wraps at a readable column, the way a terminal
+     wraps at 80. */
+  --prose-max: 76ch;
+  --photo-gap: 14px;
 }
 
 * { box-sizing: border-box; }
@@ -57,9 +67,9 @@ html, body {
 
 /* ---- Layout shell ---- */
 .crt {
-  max-width: 820px;
+  max-width: var(--shell-max);
   margin: 0 auto;
-  padding: 28px 22px 40px;
+  padding: 28px 26px 40px;
   min-height: 100vh;
 }
 
@@ -111,8 +121,17 @@ html, body {
   font-style: italic;
 }
 
-/* Readout rows: LABEL [meter] value, on a fixed grid so values align. */
-.readout { display: grid; grid-template-columns: 8.5em 1fr auto; gap: 6px 12px; align-items: center; }
+/* Readout rows: LABEL [meter] value, on a fixed grid so values align.
+   Capped independently of the panel: the meters are drawn out of block
+   characters, so on a wide screen an uncapped row would strand the value far
+   off to the right of the bar it belongs to. */
+.readout {
+  display: grid;
+  grid-template-columns: 8.5em 1fr auto;
+  gap: 6px 12px;
+  align-items: center;
+  max-width: 640px;
+}
 .readout .label { color: var(--phosphor-dim); text-transform: uppercase; letter-spacing: 0.05em; }
 .readout .value { color: var(--phosphor); text-align: right; white-space: nowrap; }
 
@@ -171,6 +190,9 @@ html, body {
   letter-spacing: 0.03em;
   margin: 2px 0 8px;
 }
+/* Prose keeps a readable measure even though the panel around it is wide.
+   Photos below are deliberately NOT capped — they use the full panel. */
+.log-entry .body { max-width: var(--prose-max); }
 .log-entry .body p { margin: 0 0 10px; }
 .log-entry .body p:last-child { margin-bottom: 0; }
 
@@ -180,16 +202,42 @@ html, body {
    screen laid over the image. The photo itself is only lightly tinted
    so it still reads as a real photo — hover/focus clears the tint
    entirely, and tapping opens the untouched original. */
+/* The strip is a wrapping flex row rather than a grid, for one reason: a grid
+   left-aligns a partial last row, which is what left 7 photos looking like
+   3+3+1. Flex centres it. Because a FULL row sums to exactly 100% wide,
+   justify-content can only ever move the final short row — complete rows stay
+   edge-to-edge and look identical to the old grid. */
 .photo-strip {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 14px;
+  --photo-cols: 3;                 /* replaced per post by the [data-cols] rules */
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: flex-start;
+  gap: var(--photo-gap);
   margin: 14px 0 4px;
 }
-/* A lone photo shouldn't stretch across the whole panel. */
-.photo-strip.single { grid-template-columns: minmax(0, 420px); }
 
-.photo { margin: 0; }
+/* One photo = one column. The 0.5px shaved off each basis absorbs sub-pixel
+   rounding, so a row that should hold N photos can never drop the Nth onto a
+   line of its own. Half a pixel across a whole row is not visible. */
+.photo {
+  margin: 0;
+  min-width: 0;
+  flex: 0 0 calc(
+    (100% - (var(--photo-cols) - 1) * var(--photo-gap)) / var(--photo-cols) - 0.5px
+  );
+}
+
+/* Column count per post, chosen in js/app.js so odd counts land in balanced
+   rows: 7 -> 4+3 centred, 5 -> 3+2 centred, 4 -> 2+2, 6 -> 3+3. */
+.photo-strip[data-cols="1"] { --photo-cols: 1; }
+.photo-strip[data-cols="2"] { --photo-cols: 2; }
+.photo-strip[data-cols="3"] { --photo-cols: 3; }
+.photo-strip[data-cols="4"] { --photo-cols: 4; }
+
+/* A lone photo shouldn't stretch across the whole panel — but it should still
+   shrink below 420px on a narrow screen instead of overflowing. */
+.photo-strip.single .photo { flex: 0 1 100%; max-width: 420px; }
 
 .photo-frame {
   position: relative;
@@ -285,7 +333,19 @@ html, body {
   border: 1px solid rgba(255,176,0,0.35);
 }
 
-/* ======================= RESPONSIVE ======================= */
+/* ======================= RESPONSIVE =======================
+   The per-post column count is a DESKTOP maximum. As the screen narrows it is
+   capped down so photos never shrink into thumbnails. Centring of the trailing
+   row is handled by the flex row itself, so every one of these caps stays
+   balanced without any per-breakpoint arithmetic. */
+@media (max-width: 1023px) {
+  .photo-strip[data-cols="4"] { --photo-cols: 3; }
+}
+@media (max-width: 759px) {
+  .photo-strip[data-cols="3"],
+  .photo-strip[data-cols="4"] { --photo-cols: 2; }
+}
+
 @media (max-width: 560px) {
   html, body { font-size: 16px; }
   .crt { padding: 18px 13px 30px; }
@@ -295,10 +355,10 @@ html, body {
   .readout { grid-template-columns: 1fr auto; row-gap: 2px; }
   .readout .label { grid-column: 1 / -1; }
   .meter { font-size: 0.95rem; }
-  /* Photos go single-column and full-width — a two-up grid on a phone makes
+  /* Photos go single-column and full-width — a two-up row on a phone makes
      both images too small to read. */
-  .photo-strip,
-  .photo-strip.single { grid-template-columns: 1fr; gap: 12px; }
+  .photo-strip { --photo-gap: 12px; }
+  .photo-strip[data-cols] { --photo-cols: 1; }
   .photo figcaption { font-size: 0.82rem; }
   .photo-tag { font-size: 0.66rem; }
 }
