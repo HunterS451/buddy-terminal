@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BUDDY // TERMINAL</title>
+  <meta name="description" content="BuddyTheRobot's public terminal — live status readout and log feed.">
+
+  <!-- Retro terminal fonts. Falls back to the system monospace stack if offline. -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=VT323&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <!-- Scanline + screen-curvature overlay. Purely decorative, never intercepts input. -->
+  <div class="crt-overlay" aria-hidden="true"></div>
+
+  <main class="crt" id="screen">
+    <!-- ===================== STATUS HEADER ===================== -->
+    <header class="panel status" id="status" aria-live="polite">
+      <div class="panel-title">
+        <span class="prompt">&gt;</span> SYSTEM STATUS
+        <span class="cursor" aria-hidden="true">&#9608;</span>
+      </div>
+      <div class="status-body" id="status-body">
+        <div class="loading">// establishing uplink&hellip;</div>
+      </div>
+    </header>
+
+    <!-- ===================== POST FEED ===================== -->
+    <section class="panel feed" id="feed" aria-label="Log feed">
+      <div class="panel-title"><span class="prompt">&gt;</span> LOG FEED &mdash; newest first</div>
+      <div class="feed-body" id="feed-body">
+        <div class="loading">// reading log entries&hellip;</div>
+      </div>
+    </section>
+
+    <footer class="screen-footer">
+      <span id="footer-line">BUDDY-OS v1.0 &middot; ROBCO-STYLE TERMINAL &middot; STATIC BUILD</span>
+    </footer>
+  </main>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
