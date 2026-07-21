@@ -24,6 +24,84 @@ const VISITOR_PLACEHOLDER = "-".repeat(VISITOR_DIGITS);
 
 const METER_CELLS = 20;   // width of the [██████░░░░] bars
 
+/* ============================================================
+   LIVENESS
+
+   status.json carries three fields that together answer "is he on right now?":
+     started_at       when the current session began
+     uptime_sec       how long he had been up AS OF the heartbeat (robot-computed,
+                      so it can't be skewed by the viewer's clock)
+     heartbeat        when that snapshot was taken — the proof of life
+     stale_after_sec  how old a heartbeat may get before we must stop claiming
+                      he's online (the ROBOT publishes this, because only the
+                      writer knows its own push cadence — hardcoding a number
+                      here would eventually disagree with it)
+
+   The uptime clock ticks in the browser rather than being published as a counter.
+   That isn't an optimisation: this site is static files on a CDN, so a pushed
+   counter would be minutes stale the instant it landed, and pushing one often
+   enough to look live would exceed the host's build limit. Ticking locally from a
+   timestamp is the only way the number is ever actually right.
+
+   Honesty rule, same as the visitor counter: never show a number we can't stand
+   behind. A missing field is a dash. A stale heartbeat stops the clock and the
+   page says LAST SEEN instead of pretending he's still up.
+   ============================================================ */
+const STATUS_POLL_SEC = 60;      // re-read status.json so an open tab stays current
+const STALE_AFTER_FALLBACK = 4500;  // used only if status.json omits stale_after_sec
+
+let statusData = null;      // most recent status.json we successfully read
+let statusTimer = null;     // 1s tick driving the uptime readout
+/* The visitor count is fetched once, but the status header is re-rendered on every
+   poll — so the last painted count is remembered here and restored into the fresh
+   markup. Without this the counter would drop back to dashes every poll, which would
+   read as "the count broke" rather than "the header refreshed". */
+let visitorText = VISITOR_PLACEHOLDER;
+let visitorLive = false;
+
+/* Seconds -> "3d 14h 22m" / "5h 02m" / "47m" / "18s". Compact and monospace-stable:
+   the largest two units only, so the string doesn't grow without bound. */
+function fmtDuration(totalSec) {
+  const s = Math.max(0, Math.floor(Number(totalSec) || 0));
+  const d = Math.floor(s / 86400);
+  const h = Math.floor((s % 86400) / 3600);
+  const m = Math.floor((s % 3600) / 60);
+  if (d) return `${d}d ${pad(h)}h ${pad(m)}m`;
+  if (h) return `${h}h ${pad(m)}m`;
+  if (m) return `${m}m ${pad(s % 60)}s`;
+  return `${s}s`;
+}
+
+/* Epoch ms for an ISO stamp, or NaN. */
+function stampMs(input) {
+  const d = new Date(input);
+  return isNaN(d) ? NaN : d.getTime();
+}
+
+/* Work out what we may honestly claim about Buddy right now.
+
+   Returns {known, online, uptimeSec, lastSeen}. `known:false` means status.json
+   didn't carry the heartbeat fields at all (an older file) — in that case we assert
+   nothing: no clock, no ONLINE badge, just a dash. */
+function liveness(s, nowMs = Date.now()) {
+  const hb = stampMs(s && s.heartbeat);
+  if (isNaN(hb)) return { known: false, online: false, uptimeSec: NaN, lastSeen: null };
+
+  // Age of the heartbeat. Clamped at 0: a viewer clock running behind the robot's
+  // would otherwise read as a negative age, and we'd rather under-claim staleness
+  // than invent a future timestamp.
+  const ageSec = Math.max(0, (nowMs - hb) / 1000);
+  const staleAfter = Number(s.stale_after_sec) > 0
+    ? Number(s.stale_after_sec) : STALE_AFTER_FALLBACK;
+  const online = ageSec <= staleAfter;
+
+  // Base the clock on the robot's own uptime_sec and add the file's age, so viewer
+  // clock skew shifts the reading by the skew instead of compounding into it.
+  const base = Number(s.uptime_sec);
+  const uptimeSec = isNaN(base) ? NaN : base + ageSec;
+  return { known: true, online, uptimeSec, lastSeen: hb };
+}
+
 /* Build a phosphor bar for a 0..100 value: filled cells + empty cells. */
 function meterBar(pct) {
   const p = Math.max(0, Math.min(100, Number(pct) || 0));
@@ -77,6 +155,7 @@ function renderStatus(s) {
   const batAlert = !isNaN(battery) && battery <= 20;
   const mode = String(s.mode || "UNKNOWN").toUpperCase();
   const following = mode.includes("FOLLOW");
+  const live = liveness(s);
 
   const row = (label, meterHTML, valueHTML, valueClass = "") =>
     `<div class="label">${esc(label)}</div>` +
@@ -90,22 +169,88 @@ function renderStatus(s) {
   if (!isNaN(battery))
     rows.push(row("Battery", meterBar(battery), `${Math.round(battery)}%`, batAlert ? " alert" : ""));
 
+  // The mode is only current while the heartbeat is. Once it goes stale the badge is
+  // dimmed and labelled last-known, so a FOLLOW badge can't imply he's moving now.
+  const modeStale = live.known && !live.online;
   const modeBadge =
-    `<span class="mode-badge${following ? " follow" : ""}">${esc(mode)}</span>`;
+    `<span class="mode-badge${following ? " follow" : ""}${modeStale ? " stale" : ""}"` +
+    `${modeStale ? ' title="Last known mode, from the most recent update. Buddy may be offline."' : ""}` +
+    `>${esc(mode)}</span>${modeStale ? '<span class="last-known"> last known</span>' : ""}`;
 
   el.innerHTML = `
     <div class="unit-line">UNIT: ${esc(s.name || "BUDDY")}
-      <span class="handle">// ${esc(s.unit || s.handle || "")}</span></div>
+      <span class="handle">// ${esc(s.unit || s.handle || "")}</span>
+      <span class="live-dot" id="live-dot" aria-hidden="true"></span></div>
     <div class="bio">"${esc(s.bio || "")}"</div>
     <div class="readout">
       ${rows.join("\n")}
       <div class="label">Mode</div><div class="meter"></div><div class="value">${modeBadge}</div>
+      <div class="label" id="uptime-label">Online For</div><div class="meter"></div>
+        <div class="value uptime" id="uptime-value">${VISITOR_PLACEHOLDER}</div>
       <div class="label">Last Active</div><div class="meter"></div>
         <div class="value">${esc(fmtStamp(s.last_active))}</div>
       <div class="label">Visits</div><div class="meter"></div>
-        <div class="value visitors" id="visitor-count"
-             title="Real count from GoatCounter: visits, not page loads — one per person per 8 hours. Cookieless; no IP addresses stored. Totals are cached up to 4 hours, so a new visit takes a while to appear. Dashes mean the count is unavailable, never zero.">${VISITOR_PLACEHOLDER}</div>
+        <div class="value visitors${visitorLive ? " live" : ""}" id="visitor-count"
+             title="Real count from GoatCounter: visits, not page loads — one per person per 8 hours. Cookieless; no IP addresses stored. Totals are cached up to 4 hours, so a new visit takes a while to appear. Dashes mean the count is unavailable, never zero.">${esc(visitorText)}</div>
     </div>`;
+  paintUptime();
+}
+
+/* Repaint just the uptime row + live dot. Called once per second, so it touches the
+   three nodes it owns and nothing else — re-rendering the whole header every tick
+   would fight the visitor counter for the same DOM. */
+function paintUptime() {
+  const labelEl = document.getElementById("uptime-label");
+  const valueEl = document.getElementById("uptime-value");
+  const dotEl = document.getElementById("live-dot");
+  if (!labelEl || !valueEl) return;
+  const live = liveness(statusData || {});
+
+  if (!live.known) {
+    // No heartbeat in the file: we genuinely don't know. Dash, and claim nothing.
+    labelEl.textContent = "Uptime";
+    valueEl.textContent = VISITOR_PLACEHOLDER;
+    valueEl.className = "value uptime";
+    valueEl.title = "This status file predates the heartbeat, so uptime is unknown.";
+    if (dotEl) dotEl.className = "live-dot unknown";
+    return;
+  }
+  if (live.online) {
+    labelEl.textContent = "Online For";
+    valueEl.textContent = isNaN(live.uptimeSec)
+      ? VISITOR_PLACEHOLDER : fmtDuration(live.uptimeSec);
+    valueEl.className = "value uptime live";
+    valueEl.title = `Session started ${fmtStamp(statusData.started_at)}. ` +
+                    `Last heartbeat ${fmtStamp(statusData.heartbeat)}.`;
+    if (dotEl) dotEl.className = "live-dot on";
+  } else {
+    // Stale: stop the clock. Showing a number that keeps climbing after he's been
+    // switched off is exactly the lie this row exists to avoid.
+    labelEl.textContent = "Last Seen";
+    valueEl.textContent = fmtStamp(statusData.heartbeat);
+    valueEl.className = "value uptime offline";
+    valueEl.title = "No update recently — Buddy may be offline. " +
+                    "This is when he last checked in, not a live reading.";
+    if (dotEl) dotEl.className = "live-dot off";
+  }
+}
+
+/* Adopt a freshly-read status document and (re)start the 1s clock. */
+function applyStatus(s) {
+  statusData = s;
+  renderStatus(s);
+  if (statusTimer === null) statusTimer = setInterval(paintUptime, 1000);
+}
+
+/* Re-read status.json on a slow poll so a tab left open follows Buddy coming and
+   going. A failed poll keeps whatever we last had — never blank the header, and
+   never let a network blip read as "offline"; only a stale HEARTBEAT does that. */
+async function pollStatus() {
+  try {
+    applyStatus(await loadJSON("data/status.json"));
+  } catch (err) {
+    console.warn("status poll failed; keeping last known values:", err);
+  }
 }
 
 /* ----------------------- VISITOR COUNTER -----------------------
@@ -148,7 +293,9 @@ async function showVisitorCount(origin) {
     // `count` arrives as a formatted string ("1,234"); keep only the digits.
     const digits = String(data.count ?? "").replace(/[^0-9]/g, "");
     if (!digits) throw new Error(`unparseable count: ${JSON.stringify(data.count)}`);
-    el.textContent = digits.padStart(VISITOR_DIGITS, "0");
+    visitorText = digits.padStart(VISITOR_DIGITS, "0");
+    visitorLive = true;         // remembered, so a header re-render keeps the number
+    el.textContent = visitorText;
     el.classList.add("live");
   } catch (err) {
     // Honest failure: keep the dashes, say why in the console only.
@@ -252,8 +399,9 @@ function showFetchError(where) {
       loadJSON("data/status.json"),
       loadJSON("data/posts.json"),
     ]);
-    renderStatus(status);
+    applyStatus(status);
     renderFeed(posts);
+    setInterval(pollStatus, STATUS_POLL_SEC * 1000);
   } catch (err) {
     console.error(err);
     showFetchError((err && err.message) || "data files");

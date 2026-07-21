@@ -170,6 +170,77 @@ html, body {
   letter-spacing: 0.1em;
 }
 .mode-badge.follow { color: var(--amber-alert); border-color: var(--amber-alert); }
+/* A mode nobody has confirmed lately. Dimmed to the faint phosphor and stripped of
+   the follow accent, so a stale FOLLOW can never read as "he's moving right now". */
+.mode-badge.stale {
+  color: var(--phosphor-faint);
+  border-color: var(--phosphor-faint);
+  border-style: dashed;
+  text-shadow: none;
+}
+.readout .last-known {
+  color: var(--phosphor-faint);
+  font-size: 0.8rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-shadow: none;
+}
+
+/* Uptime readout. Same tabular treatment as the visitor counter so the digits don't
+   jitter as the clock ticks, and the dashes of an unknown uptime occupy the same
+   width as a real one — a missing value is visibly missing, never quietly absent. */
+.readout .value.uptime {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1;
+  letter-spacing: 0.08em;
+  color: var(--phosphor-dim);          /* dim while unknown */
+}
+.readout .value.uptime.live {
+  color: var(--phosphor);
+  text-shadow: 0 0 3px rgba(51, 255, 102, 0.85), 0 0 9px rgba(51, 255, 102, 0.45);
+}
+/* Stale: amber, the same accent the rest of the panel uses for "pay attention".
+   It is a timestamp, not a running clock, and it should not look like one. */
+.readout .value.uptime.offline {
+  color: var(--amber-alert);
+  text-shadow: 0 0 3px rgba(255, 176, 0, 0.5);
+}
+
+/* The pulse next to the unit name: the one bit of the page that says "now".
+   Green + breathing while the heartbeat is fresh, flat amber once it isn't,
+   hollow when the file can't tell us. */
+.live-dot {
+  display: inline-block;
+  width: 0.58em;
+  height: 0.58em;
+  margin-left: 0.35em;
+  border-radius: 50%;
+  vertical-align: 0.08em;
+  background: transparent;
+  border: 1px solid var(--phosphor-faint);
+}
+.live-dot.on {
+  background: var(--phosphor);
+  border-color: var(--phosphor);
+  box-shadow: 0 0 4px rgba(51, 255, 102, 0.9), 0 0 10px rgba(51, 255, 102, 0.5);
+  animation: pulse 2s ease-in-out infinite;
+}
+.live-dot.off {
+  background: var(--amber-alert);
+  border-color: var(--amber-alert);
+  box-shadow: 0 0 4px rgba(255, 176, 0, 0.6);
+}
+.live-dot.unknown { background: transparent; border-color: var(--phosphor-faint); }
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.35; }
+}
+/* The CRT theme already respects this for the meters; the heartbeat dot is the
+   most motion on the page, so it must honour it too. */
+@media (prefers-reduced-motion: reduce) {
+  .live-dot.on { animation: none; }
+}
 
 /* ======================= LOG FEED ======================= */
 .log-entry {
