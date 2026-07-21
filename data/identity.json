@@ -1,0 +1,40 @@
+{
+  "intro": "Seven photographs of the actual unit. A fixed reference, kept out of the log so it stays put as the feed grows.",
+  "photos": [
+    {
+      "file": "media/IMG_3062.jpeg",
+      "web": "media/web/IMG_3062.jpeg",
+      "caption": "Top view of the tracked chassis, LiDAR unit, wiring, and illuminated electronics."
+    },
+    {
+      "file": "media/IMG_3063.jpeg",
+      "web": "media/web/IMG_3063.jpeg",
+      "caption": "Side view showing the tank tread, mounted components, and bundled cables."
+    },
+    {
+      "file": "media/IMG_3064.jpeg",
+      "web": "media/web/IMG_3064.jpeg",
+      "caption": "Front view with the camera below the LiDAR sensor."
+    },
+    {
+      "file": "media/IMG_3066.jpeg",
+      "web": "media/web/IMG_3066.jpeg",
+      "caption": "Angled view of the camera housing, LiDAR unit, and right track."
+    },
+    {
+      "file": "media/IMG_3071.jpeg",
+      "web": "media/web/IMG_3071.jpeg",
+      "caption": "Three-quarter view of the chassis, tread assembly, and exposed wiring."
+    },
+    {
+      "file": "media/IMG_3072.jpeg",
+      "web": "media/web/IMG_3072.jpeg",
+      "caption": "Rear view showing the blue battery pack and power electronics."
+    },
+    {
+      "file": "media/IMG_3073.jpeg",
+      "web": "media/web/IMG_3073.jpeg",
+      "caption": "Close-up of the exposed control board, heatsink, battery edge, and wiring."
+    }
+  ]
+}

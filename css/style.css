@@ -242,6 +242,36 @@ html, body {
   .live-dot.on { animation: none; }
 }
 
+/* ======================= VISUAL ID =======================
+   The fixed unit gallery. It borrows the whole .photo-strip layout from the feed
+   (those rules are global, not scoped to .log-entry), so the columns, centring
+   and breakpoints here are the same code the log entries use — nothing about the
+   grid is duplicated below. */
+.identity[hidden] { display: none; }   /* beats .panel's own display, always */
+
+.identity-intro {
+  color: var(--phosphor-dim);
+  font-size: 0.92rem;
+  margin: 10px 0 2px;
+  max-width: var(--prose-max);
+}
+.identity-intro::before { content: "// "; opacity: 0.75; }
+
+/* The strip's top margin already spaces it from the intro; drop the extra so the
+   panel doesn't sit taller than the status header above it. */
+.identity-body .photo-strip { margin-top: 10px; }
+
+/* Shown on a log entry whose photographs are all pinned in the gallery above. The
+   entry keeps its data and its words; only the duplicate images are left undrawn,
+   and this says so instead of letting them look like they failed to load. */
+.photo-elsewhere {
+  color: var(--phosphor-faint);
+  font-size: 0.85rem;
+  margin: 12px 0 2px;
+  letter-spacing: 0.03em;
+}
+.photo-elsewhere::before { content: "// "; opacity: 0.75; }
+
 /* ======================= LOG FEED ======================= */
 .log-entry {
   border-left: 2px solid var(--phosphor-faint);

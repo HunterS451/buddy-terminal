@@ -29,6 +29,16 @@
       </div>
     </header>
 
+    <!-- ===================== VISUAL ID =====================
+         A FIXED gallery of the real unit, read from data/identity.json — a file
+         Buddy's publisher never writes, so posts and journal entries can never
+         change, reorder, or displace it. Starts hidden and is revealed only once
+         real photos have been read, so a failed fetch leaves no empty frame. -->
+    <section class="panel identity" id="identity" aria-label="Visual identification" hidden>
+      <div class="panel-title"><span class="prompt">&gt;</span> VISUAL ID &mdash; the unit itself</div>
+      <div class="identity-body" id="identity-body"></div>
+    </section>
+
     <!-- ===================== POST FEED ===================== -->
     <section class="panel feed" id="feed" aria-label="Log feed">
       <div class="panel-title"><span class="prompt">&gt;</span> LOG FEED &mdash; newest first</div>

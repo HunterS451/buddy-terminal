@@ -59,6 +59,11 @@ let statusTimer = null;     // 1s tick driving the uptime readout
 let visitorText = VISITOR_PLACEHOLDER;
 let visitorLive = false;
 
+/* Files on show in the VISUAL ID gallery. The feed consults this so a photograph
+   pinned at the top isn't drawn a second time further down. Populated by
+   renderIdentity, which therefore has to run BEFORE renderFeed. */
+let identityFiles = new Set();
+
 /* Seconds -> "3d 14h 22m" / "5h 02m" / "47m" / "18s". Compact and monospace-stable:
    the largest two units only, so the string doesn't grow without bound. */
 function fmtDuration(totalSec) {
@@ -315,14 +320,24 @@ function initVisitorCounter() {
    either a bare filename string or {file, caption}. Anything that isn't a
    media/ image path is dropped rather than rendered, so the feed can never be
    talked into pointing somewhere else. */
-const MEDIA_OK = /^media\/[A-Za-z0-9._-]+\.(jpe?g|png|gif|webp)$/i;
+/* media/x.jpg, or media/web/x.jpg for a downscaled copy. The optional segment is
+   spelled out rather than allowing any subdirectory, so the pattern still can't be
+   talked into ../ , an absolute path, or anywhere outside those two folders. */
+const MEDIA_OK = /^media\/(?:web\/)?[A-Za-z0-9._-]+\.(jpe?g|png|gif|webp)$/i;
 
+/* Each entry becomes {file, web, caption}:
+     file  the ORIGINAL, full-resolution image — what a click opens
+     web   an optional downscaled copy used for the on-page render
+   `web` is validated separately and dropped if unusable, so a bad or missing
+   downscale silently falls back to showing the original rather than a broken img. */
 function mediaEntries(post) {
   const raw = Array.isArray(post.media) ? post.media : [];
   return raw
     .map((m) => (typeof m === "string" ? { file: m, caption: "" } : (m || {})))
-    .map((m) => ({ file: String(m.file || ""), caption: String(m.caption || "") }))
-    .filter((m) => MEDIA_OK.test(m.file));
+    .map((m) => ({ file: String(m.file || ""), web: String(m.web || ""),
+                   caption: String(m.caption || "") }))
+    .filter((m) => MEDIA_OK.test(m.file))
+    .map((m) => (MEDIA_OK.test(m.web) ? m : { ...m, web: "" }));
 }
 
 /* How many columns a strip of n photos should use on a wide screen.
@@ -338,16 +353,29 @@ function photoColumns(n) {
   return n > 6 ? 4 : 3;               // 5 -> 3+2, 7 -> 4+3, 10 -> 4+4+2
 }
 
-function renderPhotos(post) {
-  const shots = mediaEntries(post);
-  if (!shots.length) return "";
+function renderPhotos(post, { skipIdentity = false } = {}) {
+  const all = mediaEntries(post);
+  // In the FEED, drop anything already on show in the VISUAL ID gallery so the same
+  // photograph never appears twice on one page. The post's DATA is untouched — this
+  // is only what gets drawn.
+  const shots = (skipIdentity && identityFiles.size)
+    ? all.filter((m) => !identityFiles.has(m.file))
+    : all;
+  if (!shots.length) {
+    // Every photo on this entry is up in the gallery. Say so, rather than leaving it
+    // looking as though its pictures failed to load.
+    return (skipIdentity && all.length)
+      ? `<div class="photo-elsewhere">Photographs shown in VISUAL ID, above.</div>`
+      : "";
+  }
   const figures = shots.map((m, i) => {
     const cap = m.caption || `Photograph ${i + 1}`;
+    // Draw the downscaled copy when there is one; the link always opens the original.
     return `
       <figure class="photo">
         <a class="photo-frame" href="${esc(m.file)}" target="_blank" rel="noopener"
            aria-label="Open photograph ${i + 1} full size">
-          <img src="${esc(m.file)}" alt="${esc(cap)}" loading="lazy" decoding="async">
+          <img src="${esc(m.web || m.file)}" alt="${esc(cap)}" loading="lazy" decoding="async">
           <span class="photo-scan" aria-hidden="true"></span>
           <span class="photo-tag" aria-hidden="true">IMG.${pad(i + 1)}</span>
         </a>
@@ -356,6 +384,36 @@ function renderPhotos(post) {
   }).join("\n");
   const cols = photoColumns(shots.length);
   return `<div class="photo-strip${shots.length === 1 ? " single" : ""}" data-cols="${cols}">${figures}</div>`;
+}
+
+/* ----------------------- VISUAL ID -----------------------
+   A permanent gallery of the real unit, pinned between the status header and the
+   log feed. It reads data/identity.json — a file the robot's publisher never
+   touches — so no post, photo post, or journal entry can alter it.
+
+   It deliberately goes through the SAME renderPhotos() as the feed: same media/
+   path validation, same balanced column counts, same frames and breakpoints. A
+   second copy of that layout would be one more thing to keep in sync. */
+function renderIdentity(doc) {
+  const section = document.getElementById("identity");
+  const body = document.getElementById("identity-body");
+  if (!section || !body) return;
+
+  const photos = (doc && doc.photos) || [];
+  // The validated set drives the feed's de-duplication, so it must record what was
+  // actually RENDERED - not what the file asked for. A photo dropped as invalid here
+  // is not "shown above", and the feed must still show it.
+  const shots = mediaEntries({ media: photos });
+  identityFiles = new Set(shots.map((m) => m.file));
+
+  const strip = renderPhotos({ media: photos });
+  if (!strip) {
+    section.hidden = true;
+    return;
+  }
+  const intro = String((doc && doc.intro) || "").trim();
+  body.innerHTML = (intro ? `<div class="identity-intro">${esc(intro)}</div>` : "") + strip;
+  section.hidden = false;
 }
 
 /* ----------------------- LOG FEED ----------------------- */
@@ -375,7 +433,7 @@ function renderFeed(posts) {
         post.id ? " #" + esc(post.id) : ""}</div>
       <h2 class="title">${esc(post.title || "(untitled)")}</h2>
       <div class="body">${bodyToParagraphs(post.body)}</div>
-      ${renderPhotos(post)}
+      ${renderPhotos(post, { skipIdentity: true })}
     </article>`).join("\n");
 }
 
@@ -395,11 +453,18 @@ function showFetchError(where) {
 /* ----------------------- BOOT (non-blocking) ----------------------- */
 (async function init() {
   try {
-    const [status, posts] = await Promise.all([
+    // identity.json is OPTIONAL: it resolves to null rather than rejecting, so a
+    // missing gallery can never cost the reader the status header or the log feed.
+    const [status, posts, identity] = await Promise.all([
       loadJSON("data/status.json"),
       loadJSON("data/posts.json"),
+      loadJSON("data/identity.json").catch((err) => {
+        console.warn("visual ID unavailable:", err);
+        return null;
+      }),
     ]);
     applyStatus(status);
+    renderIdentity(identity);     // MUST precede renderFeed - it fills identityFiles
     renderFeed(posts);
     setInterval(pollStatus, STATUS_POLL_SEC * 1000);
   } catch (err) {
