@@ -158,6 +158,97 @@ html, body {
 .log-entry .body p { margin: 0 0 10px; }
 .log-entry .body p:last-child { margin-bottom: 0; }
 
+/* ======================= ATTACHED PHOTOS =======================
+   Real photographs, framed like something pulled up on the terminal:
+   a phosphor border, corner brackets, and the same scanlines as the
+   screen laid over the image. The photo itself is only lightly tinted
+   so it still reads as a real photo — hover/focus clears the tint
+   entirely, and tapping opens the untouched original. */
+.photo-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 14px;
+  margin: 14px 0 4px;
+}
+/* A lone photo shouldn't stretch across the whole panel. */
+.photo-strip.single { grid-template-columns: minmax(0, 420px); }
+
+.photo { margin: 0; }
+
+.photo-frame {
+  position: relative;
+  display: block;
+  border: 1px solid var(--phosphor-faint);
+  background: #000;
+  padding: 5px;
+  overflow: hidden;
+  line-height: 0;                 /* no descender gap under the img */
+}
+/* Corner brackets — drawn with two gradients, no extra markup. */
+.photo-frame::before,
+.photo-frame::after {
+  content: "";
+  position: absolute;
+  width: 12px; height: 12px;
+  border-color: var(--phosphor-dim);
+  border-style: solid;
+  pointer-events: none;
+}
+.photo-frame::before { top: 3px;    left: 3px;  border-width: 1px 0 0 1px; }
+.photo-frame::after  { bottom: 3px; right: 3px; border-width: 0 1px 1px 0; }
+
+.photo-frame img {
+  display: block;
+  width: 100%;
+  height: auto;
+  /* Mild green cast so photos sit in the phosphor world; NOT a heavy filter —
+     the picture must stay honest and legible. */
+  filter: saturate(0.72) contrast(1.05) sepia(0.18) hue-rotate(58deg);
+  transition: filter 160ms linear;
+}
+.photo-frame:hover img,
+.photo-frame:focus-visible img { filter: none; }
+
+/* Scanlines over the image, matching the screen overlay's rhythm. */
+.photo-scan {
+  position: absolute;
+  inset: 5px;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0,
+    rgba(0, 0, 0, 0) 2px,
+    rgba(0, 0, 0, 0.28) 3px
+  );
+  box-shadow: inset 0 0 26px rgba(10, 40, 20, 0.75);
+}
+
+.photo-tag {
+  position: absolute;
+  right: 8px; bottom: 8px;
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--phosphor);
+  background: rgba(0, 0, 0, 0.62);
+  border: 1px solid var(--phosphor-faint);
+  padding: 0 5px;
+  line-height: 1.5;
+}
+
+.photo figcaption {
+  color: var(--phosphor-dim);
+  font-size: 0.86rem;
+  line-height: 1.35;
+  margin-top: 6px;
+  padding-left: 2px;
+}
+.photo figcaption::before { content: "// "; opacity: 0.75; }
+
+/* Honour reduced-motion: no tint transition to animate. */
+@media (prefers-reduced-motion: reduce) {
+  .photo-frame img { transition: none; }
+}
+
 .screen-footer {
   color: var(--phosphor-dim);
   font-size: 0.82rem;
@@ -188,4 +279,10 @@ html, body {
   .readout { grid-template-columns: 1fr auto; row-gap: 2px; }
   .readout .label { grid-column: 1 / -1; }
   .meter { font-size: 0.95rem; }
+  /* Photos go single-column and full-width — a two-up grid on a phone makes
+     both images too small to read. */
+  .photo-strip,
+  .photo-strip.single { grid-template-columns: 1fr; gap: 12px; }
+  .photo figcaption { font-size: 0.82rem; }
+  .photo-tag { font-size: 0.66rem; }
 }

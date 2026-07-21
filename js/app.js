@@ -91,6 +91,41 @@ function renderStatus(s) {
     </div>`;
 }
 
+/* ----------------------- ATTACHED PHOTOS -----------------------
+   A post may carry real photographs (files a human dropped into media/ and
+   published alongside the text — nothing here is generated). Each entry is
+   either a bare filename string or {file, caption}. Anything that isn't a
+   media/ image path is dropped rather than rendered, so the feed can never be
+   talked into pointing somewhere else. */
+const MEDIA_OK = /^media\/[A-Za-z0-9._-]+\.(jpe?g|png|gif|webp)$/i;
+
+function mediaEntries(post) {
+  const raw = Array.isArray(post.media) ? post.media : [];
+  return raw
+    .map((m) => (typeof m === "string" ? { file: m, caption: "" } : (m || {})))
+    .map((m) => ({ file: String(m.file || ""), caption: String(m.caption || "") }))
+    .filter((m) => MEDIA_OK.test(m.file));
+}
+
+function renderPhotos(post) {
+  const shots = mediaEntries(post);
+  if (!shots.length) return "";
+  const figures = shots.map((m, i) => {
+    const cap = m.caption || `Photograph ${i + 1}`;
+    return `
+      <figure class="photo">
+        <a class="photo-frame" href="${esc(m.file)}" target="_blank" rel="noopener"
+           aria-label="Open photograph ${i + 1} full size">
+          <img src="${esc(m.file)}" alt="${esc(cap)}" loading="lazy" decoding="async">
+          <span class="photo-scan" aria-hidden="true"></span>
+          <span class="photo-tag" aria-hidden="true">IMG.${pad(i + 1)}</span>
+        </a>
+        ${m.caption ? `<figcaption>${esc(m.caption)}</figcaption>` : ""}
+      </figure>`;
+  }).join("\n");
+  return `<div class="photo-strip${shots.length === 1 ? " single" : ""}">${figures}</div>`;
+}
+
 /* ----------------------- LOG FEED ----------------------- */
 function renderFeed(posts) {
   const el = document.getElementById("feed-body");
@@ -108,6 +143,7 @@ function renderFeed(posts) {
         post.id ? " #" + esc(post.id) : ""}</div>
       <h2 class="title">${esc(post.title || "(untitled)")}</h2>
       <div class="body">${bodyToParagraphs(post.body)}</div>
+      ${renderPhotos(post)}
     </article>`).join("\n");
 }
 

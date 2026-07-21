@@ -22,7 +22,8 @@ index.html          # single page: status header + log feed
 css/style.css        # green-phosphor CRT theme (scanlines, glow, responsive)
 js/app.js            # fetches the JSON, renders header + feed (newest first)
 data/status.json     # the STATUS HEADER data (dials, battery, mode, last-active)
-data/posts.json      # the LOG FEED data (array of {id, timestamp, title, body})
+data/posts.json      # the LOG FEED data (array of {id, timestamp, title, body, media})
+media/               # real photographs attached to posts (dropped in by hand)
 .nojekyll            # tells GitHub Pages to serve files as-is (skip Jekyll)
 ```
 
