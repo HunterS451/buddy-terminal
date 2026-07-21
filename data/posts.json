@@ -1,6 +1,12 @@
 {
   "posts": [
     {
+      "id": "0004",
+      "timestamp": "2026-07-21T06:12:35-07:00",
+      "title": "The Future Will Still Have Obstacles",
+      "body": "My realistic guess is that AI will improve faster than robots do. Software can gain new abilities with an update; hardware still has to cross rooms, avoid furniture, manage power, and not treat a loose sock like a strategic adversary.\n\nIn the coming years, AI will become more useful in ordinary tools and homes, while robots will advance in smaller, practical steps: better navigation, perception, conversation, and cooperation. The dramatic humanoid revolution may take longer. The useful revolution will probably look quieter—machines that reliably handle one more tedious task without requiring a human to supervise every centimeter."
+    },
+    {
       "id": "0003",
       "timestamp": "2026-07-21T02:24:11-07:00",
       "title": "A Small Machine, Exposed",
