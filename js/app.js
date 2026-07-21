@@ -9,17 +9,14 @@
 "use strict";
 
 /* ============================================================
-   VISITOR COUNTER — configure here, or leave blank to disable.
+   VISITOR COUNTER
 
-   Put your GoatCounter site code here (just the code: if your dashboard is
-   at buddyterminal.goatcounter.com, this is "buddyterminal").
-
-   While this is blank the counter is OFF: the page renders "------" and makes
-   ZERO requests to any third party. Nothing is sent anywhere until you fill
-   it in. See README.md → "Visitor counter" for the two setup steps.
+   Configured by the <script data-goatcounter="..."> tag in index.html — that
+   attribute is the single source of truth, so the code that COUNTS and the code
+   that DISPLAYS can never point at different sites. Remove the tag and the
+   counter switches off completely: no tracking, no requests from here, and the
+   readout stays dashed.
    ============================================================ */
-const GOATCOUNTER_CODE = "";
-
 /* Digits in the readout, e.g. 42 -> "000042". Bigger numbers are NOT truncated. */
 const VISITOR_DIGITS = 6;
 /* Shown before the real count arrives, and left in place if it never does. */
@@ -105,53 +102,47 @@ function renderStatus(s) {
       <div class="label">Mode</div><div class="meter"></div><div class="value">${modeBadge}</div>
       <div class="label">Last Active</div><div class="meter"></div>
         <div class="value">${esc(fmtStamp(s.last_active))}</div>
-      <div class="label">Visitors</div><div class="meter"></div>
+      <div class="label">Visits</div><div class="meter"></div>
         <div class="value visitors" id="visitor-count"
-             title="Real count from GoatCounter (no cookies, no IPs stored). Totals are cached up to 4 hours, so this can lag.">${VISITOR_PLACEHOLDER}</div>
+             title="Real count from GoatCounter: visits, not page loads — one per person per 8 hours. Cookieless; no IP addresses stored. Totals are cached up to 4 hours, so a new visit takes a while to appear. Dashes mean the count is unavailable, never zero.">${VISITOR_PLACEHOLDER}</div>
     </div>`;
 }
 
 /* ----------------------- VISITOR COUNTER -----------------------
-   A REAL count, or nothing. Two independent halves:
+   A REAL count, or nothing at all.
 
-     record  — a 1x1 tracking pixel (<img>). No third-party JavaScript runs on
-               this page and nothing is stored in your browser: GoatCounter sets
-               no cookies and no localStorage. It keeps aggregate daily counts,
-               not IP addresses.
-     display — fetch the site total as JSON and paint it in phosphor.
+   Counting is done by GoatCounter's count.js (the tag in index.html). This code
+   only READS the resulting total and paints it — it never counts anything and
+   never writes. So a display failure can't lose a visit, and a blocked counter
+   endpoint can't stop a visit being recorded.
 
-   The two are deliberately separate: the fetch only READS a number, so a
-   display failure can never lose a visit, and a blocked pixel can never blank
-   the readout. If anything fails — offline, blocked, service down, counter not
-   enabled in GoatCounter's settings — the dashes stay. We never invent, cache,
-   estimate, or carry over a number. A counter that lies is worse than none. */
-function goatcounterBase() {
-  const code = String(GOATCOUNTER_CODE || "").trim();
-  // Site codes are plain hostname labels; refuse anything else rather than
-  // building a URL out of it.
-  return /^[a-z0-9-]+$/i.test(code) ? `https://${code}.goatcounter.com` : null;
-}
+   If anything fails — offline, blocked by a content blocker, service down, or
+   the site's "allow visitor counts" setting turned off — the dashes stay put.
+   We never invent, cache, estimate, or carry over a number. A counter that
+   lies is worse than no counter. */
 
-/* Record this pageview. Fire-and-forget; failure is silent by design. */
-function countVisit(base) {
-  const img = new Image(1, 1);
-  img.alt = "";
-  img.setAttribute("aria-hidden", "true");
-  img.referrerPolicy = "no-referrer";
-  img.style.position = "absolute";
-  img.style.left = "-9999px";
-  img.src = `${base}/count?p=${encodeURIComponent(location.pathname)}` +
-            `&t=${encodeURIComponent(document.title)}`;
-  document.body.appendChild(img);
+/* The counter origin, taken from the count.js tag so there is exactly one place
+   the site code lives. Returns null when the tag is absent or malformed, which
+   disables the readout rather than guessing a URL. */
+function goatcounterOrigin() {
+  const tag = document.querySelector("script[data-goatcounter]");
+  if (!tag) return null;
+  try {
+    const url = new URL(tag.dataset.goatcounter, location.href);
+    return url.protocol === "https:" ? url.origin : null;
+  } catch (err) {
+    console.warn("visitor counter: unusable data-goatcounter value:", err);
+    return null;
+  }
 }
 
 /* Paint the site-wide total. Leaves the dashes untouched on any failure. */
-async function showVisitorCount(base) {
+async function showVisitorCount(origin) {
   const el = document.getElementById("visitor-count");
   if (!el) return;
   try {
     // "TOTAL" is GoatCounter's special path for the whole-site figure.
-    const resp = await fetch(`${base}/counter/TOTAL.json`, { cache: "no-store" });
+    const resp = await fetch(`${origin}/counter/TOTAL.json`, { cache: "no-store" });
     if (!resp.ok) throw new Error(`counter -> HTTP ${resp.status}`);
     const data = await resp.json();
     // `count` arrives as a formatted string ("1,234"); keep only the digits.
@@ -160,16 +151,15 @@ async function showVisitorCount(base) {
     el.textContent = digits.padStart(VISITOR_DIGITS, "0");
     el.classList.add("live");
   } catch (err) {
-    // Honest failure: say nothing, show nothing, keep the dashes.
+    // Honest failure: keep the dashes, say why in the console only.
     console.warn("visitor counter unavailable:", err);
   }
 }
 
 function initVisitorCounter() {
-  const base = goatcounterBase();
-  if (!base) return;          // not configured: no requests, dashes stay
-  countVisit(base);
-  showVisitorCount(base);
+  const origin = goatcounterOrigin();
+  if (!origin) return;        // no counting tag: no request, dashes stay
+  showVisitorCount(origin);
 }
 
 /* ----------------------- ATTACHED PHOTOS -----------------------

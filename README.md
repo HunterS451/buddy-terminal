@@ -45,12 +45,18 @@ Blank lines (`\n\n`) in `body` become separate paragraphs.
 
 ## Visitor counter
 
-The status header shows `VISITORS: 000042`. It is **off until you configure it**, and
-while it's off the page shows `------` and makes **no requests to anyone**.
+The status header shows `VISITS: 000042` — the site's real total, counted by
+GoatCounter for **hunter451.goatcounter.com**.
+
+**It is labelled "visits", not "visitors", on purpose.** GoatCounter counts a visit as
+the first pageview from someone within an 8-hour window, so it is neither raw page
+loads nor a headcount of distinct humans. "Visits" is the only word that is exactly
+true.
 
 It is a real count or it is nothing. There is no fallback number: if the service is
-unreachable, blocked, or misconfigured, the dashes stay. Nothing is ever estimated,
-cached, or carried over.
+unreachable, blocked by a content blocker, or the setting is off, the readout stays
+`------`. Nothing is ever estimated, cached, or carried over — dashes mean *unknown*,
+never zero.
 
 ### Service used: [GoatCounter](https://www.goatcounter.com)
 
@@ -64,30 +70,31 @@ Hetzner in Finland/Germany. Per [its privacy policy](https://www.goatcounter.com
 - To de-duplicate repeat visits it holds `hash(siteID, User-Agent, IP)` **in memory
   for 8 hours**, mapped to a random UUID; that hash is never written to disk.
 
-This page uses GoatCounter's [tracking pixel](https://www.goatcounter.com/help/pixel)
-(a 1×1 `<img>`), so **no third-party JavaScript runs here at all**. The trade-off is
-that pixel-based counting catches more crawler traffic than the JS integration does,
-so expect some bot inflation on a public site.
+GoatCounter caches totals for **up to four hours**, so a fresh visit won't show up
+immediately. That's a property of the service, not a bug here.
 
-The number shown is *visits* (one per person per 8 hours), not raw page loads —
-"VISITORS" is the accurate word for it. GoatCounter caches totals for **up to four
-hours**, so a fresh visit won't appear immediately.
+### How it's wired
 
-### Setup (two steps, ~2 minutes)
+Two halves, deliberately independent:
 
-1. Sign up free at [goatcounter.com](https://www.goatcounter.com) and pick a code —
-   your dashboard becomes `YOURCODE.goatcounter.com`. An email address is required.
-2. In **Settings → "Allow adding visitor counts on your website"**, turn it **on**.
-   It defaults to off, and the counter will not work until you do this.
+| | what it does | where |
+|---|---|---|
+| **count** | `count.js` records the pageview | the `<script data-goatcounter>` tag in `index.html` |
+| **display** | reads `/counter/TOTAL.json` and paints the digits | `initVisitorCounter()` in `js/app.js` |
 
-Then set the code at the top of `js/app.js`:
+`js/app.js` **reads the site code off that script tag** rather than hardcoding it, so
+the counting URL and the displayed URL can never drift apart. The display half only
+ever performs a GET of a number — it can't record, inflate, or lose a visit.
 
-```js
-const GOATCOUNTER_CODE = "yourcode";
-```
+To switch the counter off entirely, delete the `<script data-goatcounter>` tag from
+`index.html`. Tracking stops, the page contacts nobody, and the readout stays dashed.
 
-Commit and push. To turn the counter off again, set it back to `""` — the page
-immediately stops contacting anyone.
+### Account setup (already done for hunter451)
+
+1. Free account at [goatcounter.com](https://www.goatcounter.com); the dashboard
+   becomes `YOURCODE.goatcounter.com`. An email address is required.
+2. **Settings → "Allow adding visitor counts on your website" → on.** This defaults
+   to **off**, and `/counter/TOTAL.json` returns an error until it's enabled.
 
 > If you ever add a Content-Security-Policy, allow
 > `img-src https://YOURCODE.goatcounter.com` and
