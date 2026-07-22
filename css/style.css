@@ -498,6 +498,19 @@ html, body {
    The panel is deliberately the same .panel as the log feed above it, so the
    comments read as another section of the same terminal rather than a widget
    parked underneath one. */
+/* Buddy's greeting, sitting directly above the factual blurb. Full-brightness
+   phosphor and, deliberately, NO "// " prefix: that prefix marks machine
+   narration, and this line is the robot himself talking. The visual split is an
+   honesty split — his voice on top, the system's statement of fact underneath —
+   which is also why the greeting lives here as page copy rather than being
+   posted into Discussions, where GitHub would sign it with a human's name. */
+.transmissions-greeting {
+  color: var(--phosphor);
+  font-size: 1rem;
+  margin: 0 0 8px;
+  max-width: var(--prose-max);
+}
+
 .transmissions-intro {
   color: var(--phosphor-dim);
   font-size: 0.92rem;
@@ -591,5 +604,6 @@ html, body {
   .photo-tag { font-size: 0.66rem; }
   /* css/giscus.css steps its own type down at this same 560px breakpoint, so the
      comments and the page around them stay in proportion. */
+  .transmissions-greeting { font-size: 0.94rem; }
   .transmissions-intro { font-size: 0.88rem; }
 }

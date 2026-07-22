@@ -144,8 +144,10 @@ the wrong object for this), and Cusdis/Remark42/Isso (all need a server to run).
 Until step 4 is done the panel shows **NO CHANNEL — comments are not switched on for
 this site yet**, and makes no network request at all.
 
-**All four steps are done** (2026-07-22). Steps 1 and 3 were verified directly; the
-deployed IDs in step 4 were checked against the live site.
+**All four steps are done, and comments are LIVE-VERIFIED END-TO-END** (2026-07-22):
+a real comment posted through the site widget lazy-created the discussion via the
+App's write scope and round-tripped back into the themed panel. Not merely deployed —
+actually exercised, including the first-comment path that creates the thread.
 
 > If you ever add a Content-Security-Policy, allow `script-src https://giscus.app`
 > and `frame-src https://giscus.app`.
@@ -172,7 +174,21 @@ no first comment, no discussion, warning forever. `GISCUS_BENIGN_ERRORS` in `js/
 lets exactly that one message through (logged to the console, never silent) and keeps
 everything else fatal. The match is deliberately not `/not found/i` — `Repository not
 found` and `Discussion category not found` are the wrong-ID cases this panel exists to
-report, and they must stay fatal.
+report, and they must stay fatal. Confirmed live 2026-07-22: with this in place the
+first real comment created the discussion, after which the 404 stops for good.
+
+### GOTCHA — one line of site copy goes stale the day Ask Buddy ships
+
+The TRANSMISSIONS blurb in `index.html` ends **"He does not read these."** That is true
+today and is a deliberate honesty claim, not filler.
+
+It becomes **false** the moment the Ask Buddy Q&A feature ships, because that feature is
+Buddy reading visitor comments and answering them. Shipping Ask Buddy without changing
+this line leaves the site making a false statement about what the robot does with your
+words — the exact class of thing the anti-fabrication contract exists to prevent.
+
+This is recorded as a **blocking pre-launch item** in `jarvis_bot/docs/ask-buddy-design.md`
+(§8). Do not ship Ask Buddy without changing this sentence.
 
 ### Styling
 
