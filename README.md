@@ -131,7 +131,10 @@ the wrong object for this), and Cusdis/Remark42/Isso (all need a server to run).
    as long as you set its format to Announcement.
 3. **Install the giscus GitHub App**: <https://github.com/apps/giscus> → Install →
    grant it access to **`buddy-terminal` only**. Without this the widget renders but
-   every comment fails to post.
+   every comment fails to post. (Confirmed **installed** on the installation settings
+   page, 2026-07-22: *Only select repositories* → `buddy-terminal`, read access to
+   metadata, read **and write** to discussions. The write scope is the one that
+   matters — it is what lets the first comment create the discussion.)
 4. **Get the two IDs.** Go to <https://giscus.app>, enter `HunterS451/buddy-terminal`
    in the repository box, pick the `Announcements` category, and read the generated
    `<script>` block. Copy `data-repo-id` (starts `R_`) and `data-category-id`
@@ -140,6 +143,9 @@ the wrong object for this), and Cusdis/Remark42/Isso (all need a server to run).
 
 Until step 4 is done the panel shows **NO CHANNEL — comments are not switched on for
 this site yet**, and makes no network request at all.
+
+**All four steps are done** (2026-07-22). Steps 1 and 3 were verified directly; the
+deployed IDs in step 4 were checked against the live site.
 
 > If you ever add a Content-Security-Policy, allow `script-src https://giscus.app`
 > and `frame-src https://giscus.app`.
@@ -157,6 +163,16 @@ never reaches the bottom never contacts giscus.app.
 missing IDs, Discussions switched off — each lands on an amber `NO CHANNEL` panel with
 a dash and a sentence, because an empty bordered frame would read as "nobody has ever
 written anything here", which is a different and untrue claim.
+
+**But "Discussion not found" is NOT a failure.** giscus creates a page's discussion
+lazily, on the first comment or reaction, so until then it fetches a 404 and reports
+`Discussion not found` — while still rendering the composer, which is how the thread
+ever gets created. Treating that warning as fatal is a bootstrap deadlock: no composer,
+no first comment, no discussion, warning forever. `GISCUS_BENIGN_ERRORS` in `js/app.js`
+lets exactly that one message through (logged to the console, never silent) and keeps
+everything else fatal. The match is deliberately not `/not found/i` — `Repository not
+found` and `Discussion category not found` are the wrong-ID cases this panel exists to
+report, and they must stay fatal.
 
 ### Styling
 

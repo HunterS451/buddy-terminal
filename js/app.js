@@ -789,15 +789,57 @@ function txLoad(cfg) {
   }, 250);
 }
 
-/* giscus reports configuration problems (repo not found, Discussions disabled,
-   category missing) by posting an error to the parent. Surface it rather than
-   leaving a widget that silently shows nothing — but only trust messages that
-   genuinely came from giscus's own origin. */
+/* giscus sends BOTH fatal configuration problems and benign lifecycle warnings
+   through the same channel — a postMessage of shape {giscus:{error:"..."}}. The
+   two must be told apart, because txFail() replaces the panel body and therefore
+   DESTROYS the iframe.
+
+   The one that matters: a page whose discussion does not exist yet. giscus fetches
+   it, gets a 404, and reports "Discussion not found" — but its own UI treats that
+   as an empty state and still renders the composer, because the discussion is
+   created lazily when the first comment or reaction is submitted. Killing the
+   iframe on that warning is a BOOTSTRAP DEADLOCK: no composer, so no first
+   comment, so the discussion can never come into being, so the warning is
+   permanent. Every fresh page starts in exactly this state.
+
+   Everything else stays fatal. This is an ALLOWLIST, not a blocklist, so an
+   unrecognised error still surfaces loudly rather than being silently swallowed
+   (see README, "Failure is always worded"). Still caught, deliberately:
+   a wrong data-repo-id ("Repository not found"), a wrong data-category-id
+   ("Discussion category not found"), Discussions switched off, the giscus GitHub
+   App not installed, and auth failures ("Bad credentials") — all of which are
+   real misconfiguration a visitor can do nothing about, and all of which would
+   leave a comment box that looks fine and fails on submit.
+
+   NOTE the matching is deliberately NOT /not found/i: that would also swallow
+   "Repository not found" and "Discussion category not found" — precisely the
+   bad-ID cases this panel exists to report. */
+const GISCUS_BENIGN_ERRORS = [
+  // giscus 404 on the discussion for this page. Composer renders; first comment
+  // or reaction creates the thread.
+  /\bdiscussion not found\b/i,
+];
+// Rate limiting (giscus flags 429 separately) is deliberately NOT in this list:
+// it is transient, but it does mean comments are genuinely unavailable right now,
+// and saying so is more honest than showing a composer that will reject the post.
+
+function txErrorIsBenign(message) {
+  return GISCUS_BENIGN_ERRORS.some((re) => re.test(message));
+}
+
+/* Only trust messages that genuinely came from giscus's own origin. */
 function txWatchErrors() {
   window.addEventListener("message", (ev) => {
     if (ev.origin !== GISCUS_ORIGIN) return;
     const payload = ev.data && ev.data.giscus;
     if (!payload || typeof payload.error !== "string") return;
+    if (txErrorIsBenign(payload.error)) {
+      // Visible in the console, invisible on the page: the widget is working,
+      // there simply is no thread yet. Never silent — see "no silent fallbacks".
+      console.info("transmissions: giscus reported a non-fatal state, letting the "
+                   + "widget render its own empty state:", payload.error);
+      return;
+    }
     txFail(`the comment service reported: ${payload.error}`, payload.error);
   });
 }
