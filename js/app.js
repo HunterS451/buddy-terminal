@@ -635,6 +635,193 @@ function showFetchError(where) {
   document.getElementById("feed-body").innerHTML = "";
 }
 
+/* ----------------------- TRANSMISSIONS (comments) -----------------------
+   Visitor comments via giscus, which stores them as GitHub Discussions in this
+   repo. This code CONFIGURES and WATCHES the widget; it never reads a comment,
+   and nothing on this page — or on the robot — consumes what visitors write.
+
+   Three rules, and the last one is the reason this file has more code here than
+   a copy-pasted giscus snippet would:
+
+   1. NO CONFIG, NO REQUEST. Until the repo/category IDs in index.html are real,
+      nothing is fetched and the panel says it isn't configured yet. A half-filled
+      widget firing requests at giscus.app would fail in a way that looks broken
+      rather than unfinished.
+   2. NOT UNTIL IT'S NEEDED. The panel is at the very bottom of the page, so the
+      script is injected only as it comes into view. A visitor who never scrolls
+      that far never talks to giscus.app at all.
+   3. NEVER AN EMPTY BOX. Every failure path — blocked script, dead network,
+      misconfigured repo, discussions switched off — lands on a worded panel with
+      a dash. An empty bordered frame would read as "nobody has ever written
+      anything here", which is a different and untrue statement.
+   ============================================================ */
+const GISCUS_ORIGIN = "https://giscus.app";
+const GISCUS_SRC = `${GISCUS_ORIGIN}/client.js`;
+/* How long to wait for the widget to appear before calling it a failure. Generous:
+   this is a third-party script on someone else's phone network, and a false
+   "unavailable" is worse than a few extra seconds of "opening channel…". */
+const GISCUS_TIMEOUT_MS = 12000;
+
+/* Where the comment theme lives when the page is NOT served over https — i.e.
+   during local preview. giscus fetches the theme from its own iframe, so it can
+   never reach a file:// path or a localhost port; it has to be given a public
+   URL. On the real site this constant is unused (the origin is derived below). */
+const GISCUS_THEME_FALLBACK =
+  "https://hunters451.github.io/buddy-terminal/css/giscus.css";
+
+let txSettled = false;    // a terminal state (loaded or failed) has been reached
+
+/* Replace the panel body with a worded failure. `why` completes the sentence
+   "No comments are loading because …", and is written for a visitor, not a
+   developer — the console gets the technical detail. */
+function txFail(why, detail) {
+  const el = document.getElementById("transmissions-body");
+  if (!el) return;
+  txSettled = true;
+  if (detail) console.warn("transmissions:", detail);
+  el.innerHTML = `
+    <div class="tx-none">
+      <div class="tx-none-tag">NO CHANNEL</div>
+      <div class="tx-none-why"><span class="dash">—</span> ${esc(why)}</div>
+    </div>`;
+}
+
+/* The theme URL handed to giscus. Derived from the page's own origin so a fork
+   deployed anywhere themes itself with no edit, falling back to the published
+   copy when the page is on file:// or localhost and has no reachable origin. */
+function giscusThemeURL() {
+  try {
+    if (location.protocol === "https:") {
+      return new URL("css/giscus.css", location.href).href;
+    }
+  } catch (err) {
+    console.warn("transmissions: could not derive theme URL:", err);
+  }
+  return GISCUS_THEME_FALLBACK;
+}
+
+/* Read the configuration off the section element — the same single-source-of-truth
+   pattern the visitor counter uses for its site code. Returns null (and says why)
+   when the IDs are still placeholders.
+
+   The IDs are validated by PREFIX rather than merely by being non-empty: GitHub's
+   node IDs always begin R_ (repository) and DIC_ (discussion category), so a
+   half-done setup — a repo ID pasted into the category slot, say — is caught here
+   instead of becoming an opaque giscus error later. */
+function txConfig() {
+  const el = document.getElementById("transmissions");
+  if (!el) return null;
+  const cfg = {
+    repo: (el.dataset.repo || "").trim(),
+    repoId: (el.dataset.repoId || "").trim(),
+    category: (el.dataset.category || "").trim(),
+    categoryId: (el.dataset.categoryId || "").trim(),
+  };
+  if (!/^[\w.-]+\/[\w.-]+$/.test(cfg.repo)) {
+    txFail("this page has no comment repository configured yet.",
+           `bad data-repo: ${cfg.repo}`);
+    return null;
+  }
+  if (!cfg.repoId.startsWith("R_") || !cfg.categoryId.startsWith("DIC_")) {
+    txFail("comments are not switched on for this site yet.",
+           "data-repo-id / data-category-id are still placeholders — see README.md");
+    return null;
+  }
+  return cfg;
+}
+
+/* Inject the giscus client. Called once, only when the panel nears the viewport. */
+function txLoad(cfg) {
+  const body = document.getElementById("transmissions-body");
+  if (!body) return;
+
+  const s = document.createElement("script");
+  s.src = GISCUS_SRC;
+  s.async = true;
+  // anonymous = fetch the script WITHOUT sending giscus.app cookies. A plain
+  // <script src> would send them; this is the cheapest way to keep a visitor who
+  // scrolls to the bottom from identifying themselves to giscus before they have
+  // chosen to comment. Safe because giscus.app serves client.js with
+  // `access-control-allow-origin: *` — if that ever stops being true the script
+  // fails to load, and the panel says NO CHANNEL rather than silently failing.
+  s.crossOrigin = "anonymous";
+  s.setAttribute("data-repo", cfg.repo);
+  s.setAttribute("data-repo-id", cfg.repoId);
+  s.setAttribute("data-category", cfg.category);
+  s.setAttribute("data-category-id", cfg.categoryId);
+  // One discussion per page path. This site is a single page, so every visitor
+  // lands in the same thread.
+  s.setAttribute("data-mapping", "pathname");
+  s.setAttribute("data-strict", "1");
+  s.setAttribute("data-reactions-enabled", "1");
+  // We ask for no metadata: this page has no use for the discussion's contents,
+  // and not requesting them is the simplest way to keep that true.
+  s.setAttribute("data-emit-metadata", "0");
+  // The composer sits directly under the header, where a prompt belongs.
+  s.setAttribute("data-input-position", "top");
+  s.setAttribute("data-theme", giscusThemeURL());
+  s.setAttribute("data-lang", "en");
+
+  // A blocked or unreachable giscus.app never runs its script; this is the only
+  // notification we get.
+  s.onerror = () => txFail(
+    "the comment service could not be reached. It may be blocked by a browser " +
+    "extension, or offline.", "client.js failed to load");
+
+  body.appendChild(s);
+
+  // giscus replaces its own script tag with the iframe. Watch for that as the
+  // signal it actually rendered, and clear the placeholder when it does.
+  const started = Date.now();
+  const poll = setInterval(() => {
+    if (txSettled) { clearInterval(poll); return; }
+    if (body.querySelector("iframe.giscus-frame")) {
+      clearInterval(poll);
+      txSettled = true;
+      const ph = body.querySelector(".loading");
+      if (ph) ph.remove();
+      return;
+    }
+    if (Date.now() - started > GISCUS_TIMEOUT_MS) {
+      clearInterval(poll);
+      txFail("the comment service did not respond.", "giscus iframe never appeared");
+    }
+  }, 250);
+}
+
+/* giscus reports configuration problems (repo not found, Discussions disabled,
+   category missing) by posting an error to the parent. Surface it rather than
+   leaving a widget that silently shows nothing — but only trust messages that
+   genuinely came from giscus's own origin. */
+function txWatchErrors() {
+  window.addEventListener("message", (ev) => {
+    if (ev.origin !== GISCUS_ORIGIN) return;
+    const payload = ev.data && ev.data.giscus;
+    if (!payload || typeof payload.error !== "string") return;
+    txFail(`the comment service reported: ${payload.error}`, payload.error);
+  });
+}
+
+function initTransmissions() {
+  const section = document.getElementById("transmissions");
+  const cfg = txConfig();      // paints its own failure state when unconfigured
+  if (!section || !cfg) return;
+
+  txWatchErrors();
+
+  // Load only once the panel is close to being read. Browsers without
+  // IntersectionObserver just load it immediately — a capability gap should cost
+  // a request, never the feature.
+  if (!("IntersectionObserver" in window)) { txLoad(cfg); return; }
+  const io = new IntersectionObserver((entries) => {
+    if (entries.some((e) => e.isIntersecting)) {
+      io.disconnect();
+      txLoad(cfg);
+    }
+  }, { rootMargin: "400px" });
+  io.observe(section);
+}
+
 /* ----------------------- BOOT (non-blocking) ----------------------- */
 (async function init() {
   try {
@@ -660,7 +847,8 @@ function showFetchError(where) {
     console.error(err);
     showFetchError((err && err.message) || "data files");
   }
-  // Runs regardless: a visit still counts even if Buddy's data files are
-  // unreachable, and the counter is independent of them.
+  // Both run regardless: a visit still counts, and the comment channel still
+  // opens, even if Buddy's data files are unreachable. Neither depends on them.
   initVisitorCounter();
+  initTransmissions();
 })();

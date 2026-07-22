@@ -1,0 +1,176 @@
+/* ============================================================
+   BUDDY TERMINAL — giscus comment theme ("TRANSMISSIONS")
+
+   This file is loaded by the giscus IFRAME, not by index.html. The comment
+   widget renders cross-origin on giscus.app, so css/style.css cannot reach
+   inside it — the only way to style the comments is to hand giscus a URL to a
+   stylesheet, which is this file. js/app.js builds that URL from the page's own
+   origin, so a fork deployed anywhere themes itself with no edit here.
+
+   PROVENANCE: forked from giscus's own `transparent_dark` theme (which is in
+   turn derived from GitHub's dark theme in primer/primitives, MIT — original
+   notice preserved below). The variable block is that theme with every GitHub
+   blue/grey repainted to Buddy's phosphor palette; the rules after it are ours.
+
+   The palette below is a copy of the one in css/style.css. It has to be — the
+   two files are loaded by two different documents on two different origins and
+   cannot share a :root. If you change a colour there, change it here:
+     phosphor #33ff66 · dim #1f9c43 · faint #0f5a26 · amber #ffb000 · bg #050805
+   ============================================================ */
+
+/*! Modified from GitHub's dark theme in primer/primitives.
+ * MIT License
+ * Copyright (c) 2018 GitHub Inc.
+ * https://github.com/primer/primitives/blob/main/LICENSE
+ */main{--color-prettylights-syntax-comment:#1f9c43;--color-prettylights-syntax-constant:#7dffa8;--color-prettylights-syntax-entity:#33ff66;--color-prettylights-syntax-storage-modifier-import:#33ff66;--color-prettylights-syntax-entity-tag:#7dffa8;--color-prettylights-syntax-keyword:#ffb000;--color-prettylights-syntax-string:#b6ffcc;--color-prettylights-syntax-variable:#ffb000;--color-prettylights-syntax-brackethighlighter-unmatched:#ff7a45;--color-prettylights-syntax-invalid-illegal-text:#050805;--color-prettylights-syntax-invalid-illegal-bg:#ff7a45;--color-prettylights-syntax-carriage-return-text:#050805;--color-prettylights-syntax-carriage-return-bg:#ff7a45;--color-prettylights-syntax-string-regexp:#7dffa8;--color-prettylights-syntax-markup-list:#ffb000;--color-prettylights-syntax-markup-heading:#1f9c43;--color-prettylights-syntax-markup-italic:#33ff66;--color-prettylights-syntax-markup-bold:#33ff66;--color-prettylights-syntax-markup-deleted-text:#ffd9c9;--color-prettylights-syntax-markup-deleted-bg:#3a1206;--color-prettylights-syntax-markup-inserted-text:#b6ffcc;--color-prettylights-syntax-markup-inserted-bg:#0b3d1a;--color-prettylights-syntax-markup-changed-text:#ffe6bf;--color-prettylights-syntax-markup-changed-bg:#3a2606;--color-prettylights-syntax-markup-ignored-text:#33ff66;--color-prettylights-syntax-markup-ignored-bg:#0f5a26;--color-prettylights-syntax-meta-diff-range:#33ff66;--color-prettylights-syntax-brackethighlighter-angle:#1f9c43;--color-prettylights-syntax-sublimelinter-gutter-mark:#0f5a26;--color-prettylights-syntax-constant-other-reference-link:#b6ffcc;--color-btn-text:#33ff66;--color-btn-bg:#0a1c0ecc;--color-btn-border:#33ff661a;--color-btn-shadow:0 0 #0000;--color-btn-inset-shadow:0 0 #0000;--color-btn-hover-bg:#10331a80;--color-btn-hover-border:#1f9c43;--color-btn-active-bg:#0a1c0e80;--color-btn-active-border:#1f9c43;--color-btn-selected-bg:#10331a80;--color-btn-primary-text:#33ff66;--color-btn-primary-bg:#14532a;--color-btn-primary-border:#33ff661a;--color-btn-primary-shadow:0 0 #0000;--color-btn-primary-inset-shadow:0 0 #0000;--color-btn-primary-hover-bg:#1f9c43;--color-btn-primary-hover-border:#33ff661a;--color-btn-primary-selected-bg:#14532a;--color-btn-primary-selected-shadow:0 0 #0000;--color-btn-primary-disabled-text:#0f5a2680;--color-btn-primary-disabled-bg:#14532a99;--color-btn-primary-disabled-border:#33ff661a;--color-action-list-item-default-hover-bg:#33ff661f;--color-segmented-control-bg:#0f5a261a;--color-segmented-control-button-bg:#0000;--color-segmented-control-button-selected-border:#0f5a26;--color-fg-default:#33ff66;--color-fg-muted:#1f9c43;--color-fg-subtle:#0f5a26;--color-canvas-default:#0000;--color-canvas-overlay:#060d06f2;--color-canvas-inset:#0000;--color-canvas-subtle:#0000;--color-border-default:#0f5a26;--color-border-muted:#0b3d1a;--color-neutral-muted:#33ff660d;--color-neutral-subtle:#33ff661a;--color-accent-fg:#33ff66;--color-accent-emphasis:#1f9c43;--color-accent-muted:#33ff6666;--color-accent-subtle:#33ff661a;--color-success-fg:#33ff66;--color-attention-fg:#ffb000;--color-attention-muted:#ffb00066;--color-attention-subtle:#ffb00026;--color-danger-fg:#ff7a45;--color-danger-muted:#ff7a4566;--color-danger-subtle:#ff7a451a;--color-primer-shadow-inset:0 0 #0000;--color-scale-gray-7:#0b3d1a;--color-scale-blue-8:#12401f;
+
+  /*! Extensions from @primer/css/alerts/flash.scss */--color-social-reaction-bg-hover:var(--color-scale-gray-7);--color-social-reaction-bg-reacted-hover:var(--color-scale-blue-8)}main .pagination-loader-container{background-image:url(https://github.com/images/modules/pulls/progressive-disclosure-line-dark.svg)}.gsc-pagination-button{background-color:var(--color-btn-bg)}.gsc-homepage-bg{animation:gradient 21s ease infinite;background:linear-gradient(135deg,#05485c,#032e58,#2f0154);background-size:600% 600%}@keyframes gradient{0%{background-position:2% 0}50%{background-position:99% 100%}to{background-position:2% 0}}main .gsc-loading-image{background-image:url(https://github.githubassets.com/images/mona-loading-dark.gif)}
+
+/* ============================================================
+   TERMINAL OVERRIDES — everything below this line is Buddy's, not GitHub's.
+   The block above only recolours giscus; these rules change its SHAPE, so the
+   comments read as log entries rather than as a chat widget wearing green.
+   ============================================================ */
+
+/* The font stack matches css/style.css exactly, including the fallback chain, so
+   a visitor with the webfonts blocked sees the comments degrade to the same
+   system monospace as the rest of the page rather than to a sans-serif. giscus
+   loads no webfonts of its own; if Share Tech Mono isn't already cached from the
+   parent page this falls through, which is why the fallbacks matter. */
+main,
+main button,
+main input,
+main textarea,
+main select {
+  font-family: "Share Tech Mono", "VT323", "Courier New", Consolas, monospace;
+}
+
+main {
+  color: #33ff66;
+  text-shadow: 0 0 2px rgba(51, 255, 102, 0.55), 0 0 6px rgba(51, 255, 102, 0.30);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+/* A terminal has no rounded corners. This is deliberately broad: giscus's own
+   class names are internal and may change, and a single stray 6px radius is
+   exactly the tell that gives away a bolted-on widget. */
+main *:not(svg):not(path) {
+  border-radius: 0 !important;
+}
+
+/* Links: phosphor, underlined on hover only — same restraint as the page. */
+main a { color: #33ff66; text-decoration: none; }
+main a:hover { text-decoration: underline; }
+
+/* ---- One comment = one log entry ----
+   The left rail, padding and spacing here are copied from .log-entry in
+   css/style.css so a transmission and a log entry line up as the same object. */
+main .gsc-comment > div,
+main .gsc-reply > div {
+  border: 0;
+  border-left: 2px solid #0f5a26;
+  border-radius: 0;
+  background: rgba(6, 13, 6, 0.55);
+  padding: 6px 0 10px 14px;
+}
+
+/* The header row of a comment: dim, letterspaced, like .log-entry .meta. */
+main .gsc-comment-header,
+main .gsc-comment-author,
+main .gsc-comment-edited {
+  color: #1f9c43;
+  font-size: 0.9rem;
+  letter-spacing: 0.04em;
+}
+main .gsc-comment-author-avatar { font-weight: normal; }
+
+/* Avatars get the same treatment as photographs in the feed: square, framed,
+   lightly tinted into the phosphor world. Not a heavy filter — a face should
+   still read as a face. Scoped to avatar images so a picture posted INSIDE a
+   comment is left alone. */
+main .gsc-comment-author-avatar img,
+main [class*="avatar"] img,
+main img[class*="avatar"] {
+  border: 1px solid #0f5a26;
+  filter: saturate(0.72) contrast(1.05) sepia(0.18) hue-rotate(58deg);
+}
+
+/* ---- The composer ---- */
+main .gsc-comment-box {
+  border: 1px solid #0f5a26;
+  background: rgba(6, 13, 6, 0.65);
+}
+main .gsc-comment-box-textarea,
+main .gsc-comment-box-preview {
+  background: #050805;
+  color: #33ff66;
+  border-color: #0f5a26;
+}
+main .gsc-comment-box-textarea::placeholder { color: #0f5a26; }
+main .gsc-comment-box-tabs { border-bottom: 1px dashed #0f5a26; }
+
+/* Buttons: hollow phosphor frames, uppercase, letterspaced — the page's
+   .mode-badge treatment rather than GitHub's filled pills. */
+main .gsc-comment-box-buttons button,
+main .gsc-pagination-button,
+main .gsc-reply-box button {
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  border: 1px solid #1f9c43;
+}
+
+/* ---- Reactions ---- */
+main .gsc-reactions-count,
+main .gsc-social-reaction-summary-item {
+  border-color: #0f5a26;
+  color: #1f9c43;
+}
+main .gsc-direct-reaction-buttons button:hover,
+main .gsc-social-reaction-summary-item:hover { border-color: #33ff66; }
+
+/* ---- Rules and dividers: dashed, matching .panel-title's underline ---- */
+main .gsc-header,
+main .gsc-comments > .gsc-header { border-bottom: 1px dashed #0f5a26; }
+main .gsc-timeline > .gsc-comment + .gsc-comment { margin-top: 4px; }
+
+/* ---- Code and quotes inside a comment ---- */
+main .markdown pre,
+main .markdown code {
+  background: rgba(15, 90, 38, 0.14);
+  border: 1px solid rgba(15, 90, 38, 0.55);
+  text-shadow: none;             /* glow makes dense code mushy */
+}
+main .markdown blockquote {
+  border-left: 2px solid #0f5a26;
+  color: #1f9c43;
+}
+main .markdown table td,
+main .markdown table th { border-color: #0f5a26; }
+
+/* ---- Remote GitHub artwork, removed ----
+   The upstream theme points three selectors at githubassets.com (an animated
+   blue/purple gradient, the Mona loading GIF, a progressive-disclosure line).
+   All three are wrong for this page, and dropping them also drops three
+   cross-origin requests from a page whose whole point is not making any. */
+main .gsc-homepage-bg {
+  animation: none;
+  background: transparent;
+}
+main .gsc-loading-image { background-image: none; }
+main .pagination-loader-container { background-image: none; }
+
+main .gsc-loading-text { color: #1f9c43; }
+main .gsc-loading-text::before { content: "// "; }
+
+/* The reduced-motion contract from css/style.css holds inside the iframe too. */
+@media (prefers-reduced-motion: reduce) {
+  main * { animation: none !important; transition: none !important; }
+}
+
+/* Narrow screens: the page drops to 16px at 560px, so the comments do too. */
+@media (max-width: 560px) {
+  main { font-size: 15px; }
+  main .gsc-comment > div,
+  main .gsc-reply > div { padding-left: 10px; }
+}

@@ -488,6 +488,59 @@ html, body {
   .photo-frame img { transition: none; }
 }
 
+/* ======================= TRANSMISSIONS (comments) =======================
+   Visitor comments, backed by GitHub Discussions via giscus. The comments
+   themselves render inside a cross-origin IFRAME, so nothing in this file can
+   reach them — their styling lives in css/giscus.css, which giscus loads. What
+   these rules own is the FRAME: the panel, the header, the intro, and the two
+   honest failure states.
+
+   The panel is deliberately the same .panel as the log feed above it, so the
+   comments read as another section of the same terminal rather than a widget
+   parked underneath one. */
+.transmissions-intro {
+  color: var(--phosphor-dim);
+  font-size: 0.92rem;
+  margin: 0 0 14px;
+  max-width: var(--prose-max);
+}
+.transmissions-intro::before { content: "// "; opacity: 0.75; }
+
+/* The iframe giscus injects. Transparent background so the panel shows through
+   (the theme's canvas is transparent), and no border of its own — the panel is
+   already a frame, and a second one would double up. */
+.transmissions-body .giscus,
+.transmissions-body .giscus-frame {
+  width: 100%;
+  border: none;
+  color-scheme: normal;   /* stops a white flash before the theme lands */
+}
+
+/* ---- Honest failure ----
+   Same treatment as the scope's NO SCAN: an amber dashed tag and a sentence
+   saying what is actually wrong. A comment section that fails must never be an
+   empty bordered box, which reads as "nobody has ever written anything". */
+.tx-none { padding: 2px 0; }
+.tx-none-tag {
+  display: inline-block;
+  border: 1px dashed var(--amber-alert);
+  color: var(--amber-alert);
+  padding: 2px 10px;
+  letter-spacing: 0.14em;
+  margin-bottom: 8px;
+}
+.tx-none-why {
+  color: var(--phosphor-dim);
+  font-size: 0.9rem;
+  max-width: var(--prose-max);
+}
+/* The dash carries the same meaning as the dashes in the status readout: a value
+   we do not have, shown as visibly missing rather than quietly absent. */
+.tx-none-why .dash {
+  color: var(--phosphor-faint);
+  letter-spacing: 0.14em;
+}
+
 .screen-footer {
   color: var(--phosphor-dim);
   font-size: 0.82rem;
@@ -536,4 +589,7 @@ html, body {
   .photo-strip[data-cols] { --photo-cols: 1; }
   .photo figcaption { font-size: 0.82rem; }
   .photo-tag { font-size: 0.66rem; }
+  /* css/giscus.css steps its own type down at this same 560px breakpoint, so the
+     comments and the page around them stay in proportion. */
+  .transmissions-intro { font-size: 0.88rem; }
 }

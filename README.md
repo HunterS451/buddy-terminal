@@ -100,6 +100,80 @@ To switch the counter off entirely, delete the `<script data-goatcounter>` tag f
 > `img-src https://YOURCODE.goatcounter.com` and
 > `connect-src https://YOURCODE.goatcounter.com`.
 
+## Comments ("TRANSMISSIONS")
+
+Visitor comments at the bottom of the page, backed by **[giscus](https://giscus.app)** —
+the comments *are* GitHub Discussions in this repo. No server, no database, no
+third-party tracker, and no account anywhere except the GitHub one you already have.
+
+**The tradeoff, stated plainly: commenting requires a GitHub account.** That rules
+out drive-by comments from people without one. In exchange there is no moderation
+queue to build, no spam service to pay for, and no personal data held by anyone new —
+which is why it beats Disqus (ads + tracking), Utterances (same idea, but Issues are
+the wrong object for this), and Cusdis/Remark42/Isso (all need a server to run).
+
+### What it can and cannot do
+
+- Comments live in **this repo's** Discussions, under your account, moderated with
+  GitHub's own tools (hide, delete, lock, block).
+- **Buddy cannot read them.** Nothing in `jarvis_bot` touches comments, and the site
+  code fetches a comment exactly never — it hands giscus a config and gets out of the
+  way. If you ever *want* him to read them, that is a separate, deliberate change.
+
+### Setup — the parts only you can do
+
+1. **Enable Discussions on the repo.** Settings → General → Features → tick
+   **Discussions**. (Currently **off** — giscus cannot work until this is on.)
+2. **Pick the category they land in.** This site uses the stock **`Announcements`**
+   category, which ships with Discussions already set to **Announcement** format —
+   *important*: that means only you can start a discussion, while anyone can reply.
+   Without that format, visitors can open new threads. A custom category works too,
+   as long as you set its format to Announcement.
+3. **Install the giscus GitHub App**: <https://github.com/apps/giscus> → Install →
+   grant it access to **`buddy-terminal` only**. Without this the widget renders but
+   every comment fails to post.
+4. **Get the two IDs.** Go to <https://giscus.app>, enter `HunterS451/buddy-terminal`
+   in the repository box, pick the `Announcements` category, and read the generated
+   `<script>` block. Copy `data-repo-id` (starts `R_`) and `data-category-id`
+   (starts `DIC_`) into the matching attributes on `<section id="transmissions">` in
+   `index.html`. Nothing else in that snippet is needed — the rest is already set.
+
+Until step 4 is done the panel shows **NO CHANNEL — comments are not switched on for
+this site yet**, and makes no network request at all.
+
+> If you ever add a Content-Security-Policy, allow `script-src https://giscus.app`
+> and `frame-src https://giscus.app`.
+
+### How it's wired
+
+The `data-*` attributes on `<section id="transmissions">` in `index.html` are the
+single source of truth; `initTransmissions()` in `js/app.js` reads them and builds the
+giscus script from them — the same pattern the visitor counter uses for its site code.
+
+The script is injected only when the panel scrolls near the viewport, so a visitor who
+never reaches the bottom never contacts giscus.app.
+
+**Failure is always worded, never an empty box.** Blocked script, dead network,
+missing IDs, Discussions switched off — each lands on an amber `NO CHANNEL` panel with
+a dash and a sentence, because an empty bordered frame would read as "nobody has ever
+written anything here", which is a different and untrue claim.
+
+### Styling
+
+The comments render in a **cross-origin iframe**, so `css/style.css` cannot reach
+inside them. `css/giscus.css` is the theme giscus loads instead: giscus's own
+`transparent_dark` (MIT, from primer/primitives) with every GitHub blue and grey
+repainted to the phosphor palette, plus rules that square every corner and give each
+comment the same left rail as a log entry.
+
+> **The palette is duplicated** between `css/style.css` and `css/giscus.css` and has
+> to be — two documents, two origins, no shared `:root`. Change a colour in one and
+> change it in the other.
+
+> **`css/giscus.css` must be pushed and live before the comments will look right.**
+> giscus fetches the theme from *its* iframe over the public internet, so it can never
+> see your local copy. Until the file is deployed, the widget renders unthemed.
+
 ## GitHub Pages setup
 
 **Recommended: a dedicated *project* repo, not the `username.github.io` user site.**
