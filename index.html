@@ -58,6 +58,34 @@
       </div>
     </section>
 
+    <!-- ===================== TRANSMISSIONS =====================
+         Visitor comments, backed by GitHub Discussions through giscus
+         (giscus.app). No server, no database, no third-party tracker: the
+         comments are Discussions in this very repo, so the data stays under the
+         same account as the site and is moderated with GitHub's own tools.
+
+         The data-* attributes below are the SINGLE SOURCE OF TRUTH for the
+         configuration — js/app.js reads them and builds the giscus script from
+         them, exactly as it reads data-goatcounter for the visitor counter.
+         Until they hold real IDs the section says so in words and makes no
+         network request at all. See README.md ("Comments") for how to get them.
+
+         Posting requires a GitHub account. That is giscus's one real cost, and
+         it is also its moderation story: no anonymous drive-by comments. -->
+    <section class="panel transmissions" id="transmissions"
+             aria-label="Visitor comments"
+             data-repo="HunterS451/buddy-terminal"
+             data-repo-id="R_kgDOTesW4g"
+             data-category="Announcements"
+             data-category-id="DIC_kwDOTesW4s4DBsQB">
+      <div class="panel-title"><span class="prompt">&gt;</span> TRANSMISSIONS</div>
+      <div class="transmissions-intro">Incoming channel. Signed with a GitHub account, stored as a
+        discussion in Buddy's own repository. He does not read these.</div>
+      <div class="transmissions-body" id="transmissions-body">
+        <div class="loading">// opening channel&hellip;</div>
+      </div>
+    </section>
+
     <footer class="screen-footer">
       <span id="footer-line">BUDDY-OS v1.0 &middot; ROBCO-STYLE TERMINAL &middot; STATIC BUILD</span>
     </footer>

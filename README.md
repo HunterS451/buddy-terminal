@@ -123,7 +123,7 @@ the wrong object for this), and Cusdis/Remark42/Isso (all need a server to run).
 ### Setup — the parts only you can do
 
 1. **Enable Discussions on the repo.** Settings → General → Features → tick
-   **Discussions**. (Currently **off** — giscus cannot work until this is on.)
+   **Discussions**. (Confirmed **on** — verified against the API, 2026-07-22.)
 2. **Pick the category they land in.** This site uses the stock **`Announcements`**
    category, which ships with Discussions already set to **Announcement** format —
    *important*: that means only you can start a discussion, while anyone can reply.
