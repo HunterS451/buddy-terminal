@@ -88,8 +88,16 @@
       <div class="transmissions-greeting">Leave a transmission if you like. I can't promise
         I'll read it &mdash; I can promise it'll still be here long after I've forgotten how to
         get out of a corner.</div>
+      <!-- This blurb is the ONLY place a visitor is told what happens to their words,
+           and they read it in the moment they decide whether to write. It said "He does
+           not read these" until Ask Buddy shipped, which made it false by definition.
+           Three facts have to stay accurate here, in whatever wording: that he MAY read
+           them, that a human approves anything that gets posted, and that his answers
+           draw only on what is already public on this page. See the design doc §8. -->
       <div class="transmissions-intro">Incoming channel. Signed with a GitHub account, stored as a
-        discussion in Buddy's own repository. He does not read these.</div>
+        discussion in Buddy's own repository. He may read what you write and answer it here in
+        public &mdash; he drafts the reply, a human approves it before it appears, and he draws
+        only on what he has already published on this page.</div>
       <div class="transmissions-body" id="transmissions-body">
         <div class="loading">// opening channel&hellip;</div>
       </div>

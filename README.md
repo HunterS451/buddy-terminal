@@ -177,18 +177,30 @@ found` and `Discussion category not found` are the wrong-ID cases this panel exi
 report, and they must stay fatal. Confirmed live 2026-07-22: with this in place the
 first real comment created the discussion, after which the 404 stops for good.
 
-### GOTCHA — one line of site copy goes stale the day Ask Buddy ships
+### The TRANSMISSIONS blurb is a disclosure, not decoration — DONE 2026-07-23
 
-The TRANSMISSIONS blurb in `index.html` ends **"He does not read these."** That is true
-today and is a deliberate honesty claim, not filler.
+The blurb used to end **"He does not read these."** That was true, and it was a deliberate
+honesty claim rather than filler — which is exactly why it could not survive Ask Buddy,
+a feature whose whole content is Buddy reading visitor comments and answering them.
+Leaving it up would have left the site making a false statement about what the robot does
+with your words, in the one place you decide whether to write them.
 
-It becomes **false** the moment the Ask Buddy Q&A feature ships, because that feature is
-Buddy reading visitor comments and answering them. Shipping Ask Buddy without changing
-this line leaves the site making a false statement about what the robot does with your
-words — the exact class of thing the anti-fabrication contract exists to prevent.
+It was replaced when Ask Buddy shipped (`jarvis_bot/docs/ask-buddy-design.md` §8, which
+recorded it as a blocking pre-launch item). **Three facts have to stay accurate in that
+blurb, whatever the wording:**
 
-This is recorded as a **blocking pre-launch item** in `jarvis_bot/docs/ask-buddy-design.md`
-(§8). Do not ship Ask Buddy without changing this sentence.
+1. he **may read** what you write,
+2. a **human approves** anything that gets posted,
+3. his answers draw **only on what is already published** on this page.
+
+The greeting line above it — *"I can't promise I'll read it"* — was assessed against the
+same blocker and deliberately left alone. It withholds a guarantee rather than asserting
+a fact, so it stays true after the feature ships. That distinction is the one to apply to
+any future copy here: **a withheld guarantee survives the feature; an asserted negative
+does not.**
+
+Guarded from the other repo by `tests/test_ask_buddy_security.py::test_site_copy_discloses_the_ask_feature`,
+which skips (loudly) when this repo is not checked out.
 
 ### Styling
 
