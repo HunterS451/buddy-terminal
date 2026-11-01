@@ -185,3 +185,31 @@ test("no horizontal page scroll", async ({ page }) => {
     document.documentElement.scrollWidth - document.documentElement.clientWidth);
   expect(overflow).toBeLessThanOrEqual(0);
 });
+
+test("skip link is first in tab order and targets the feed", async ({ page }) => {
+  await isolate(page);
+  await page.goto("/");
+  await page.keyboard.press("Tab");
+  await expect(page.locator(".skip-link")).toBeFocused();
+  await expect(page.locator(".skip-link")).toHaveAttribute("href", "#feed");
+});
+
+test("#log-<id> deep link scrolls to the entry after render", async ({ page }) => {
+  await isolate(page);
+  await page.goto("/#log-0001");
+  const entry = page.locator("#log-0001");
+  await expect(entry).toBeInViewport();
+});
+
+test("head carries feed, favicon and link-preview tags", async ({ page, request }) => {
+  await isolate(page);
+  await page.goto("/");
+  for (const sel of ['link[rel="alternate"][type="application/atom+xml"]', 'link[rel="icon"]',
+                     'meta[property="og:image"]', 'meta[name="twitter:card"]']) {
+    await expect(page.locator(sel)).toHaveCount(1);
+  }
+  const feed = await request.get("/feed.xml");
+  expect(feed.ok()).toBe(true);
+  expect(await feed.text()).toContain("<feed xmlns=\"http://www.w3.org/2005/Atom\">");
+  expect((await request.get("/favicon.svg")).ok()).toBe(true);
+});

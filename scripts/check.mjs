@@ -110,6 +110,13 @@ for (const f of ["css/style.css", "css/giscus.css"]) {
   }
 }
 
+// --- feed.xml must match posts.json
+try {
+  execFileSync("python3", [join(ROOT, "scripts/build_feed.py"), "--check"], { stdio: "pipe" });
+} catch (e) {
+  fail(`feed.xml: ${String(e.stderr || e.message).trim()}`);
+}
+
 if (errors.length) {
   console.error(`✗ ${errors.length} problem(s):\n` + errors.map((e) => "  - " + e).join("\n"));
   process.exit(1);
