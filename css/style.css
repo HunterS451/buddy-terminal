@@ -12,7 +12,8 @@
 :root {
   --phosphor:        #33ff66;   /* primary text */
   --phosphor-dim:    #1f9c43;   /* labels, secondary */
-  --phosphor-faint:  #0f5a26;   /* rules, empty meter cells */
+  --phosphor-faint:  #0f5a26;   /* rules, empty meter cells — DECORATIVE ONLY (2.4:1) */
+  --phosphor-muted:  #1e9040;   /* de-emphasised TEXT; ≥4.5:1 on --bg and --bg-panel (WCAG AA) */
   --amber-alert:     #ffb000;   /* low-battery / alert accents */
   --bg:              #050805;   /* near-black with a green cast */
   --bg-panel:        #060d06;
@@ -173,13 +174,13 @@ html, body {
 /* A mode nobody has confirmed lately. Dimmed to the faint phosphor and stripped of
    the follow accent, so a stale FOLLOW can never read as "he's moving right now". */
 .mode-badge.stale {
-  color: var(--phosphor-faint);
+  color: var(--phosphor-muted);
   border-color: var(--phosphor-faint);
   border-style: dashed;
   text-shadow: none;
 }
 .readout .last-known {
-  color: var(--phosphor-faint);
+  color: var(--phosphor-muted);
   font-size: 0.8rem;
   letter-spacing: 0.05em;
   text-transform: uppercase;
@@ -265,7 +266,7 @@ html, body {
    entry keeps its data and its words; only the duplicate images are left undrawn,
    and this says so instead of letting them look like they failed to load. */
 .photo-elsewhere {
-  color: var(--phosphor-faint);
+  color: var(--phosphor-muted);
   font-size: 0.85rem;
   margin: 12px 0 2px;
   letter-spacing: 0.03em;
@@ -317,7 +318,7 @@ html, body {
 }
 .scope-fact .v { flex: 1 1 auto; min-width: 0; color: var(--phosphor); }
 .scope-note {
-  color: var(--phosphor-faint);
+  color: var(--phosphor-muted);
   font-size: 0.82rem;
   margin: 8px 0 12px;
   max-width: var(--prose-max);
@@ -606,4 +607,32 @@ html, body {
      comments and the page around them stay in proportion. */
   .transmissions-greeting { font-size: 0.94rem; }
   .transmissions-intro { font-size: 0.88rem; }
+}
+
+/* ======================= ACCESSIBILITY ======================= */
+/* Keyboard focus is always visible, in the phosphor palette. */
+:focus-visible {
+  outline: 2px solid var(--phosphor);
+  outline-offset: 2px;
+}
+/* Skip link: off-screen until focused, then a terminal-styled tab at top-left. */
+.skip-link {
+  position: absolute;
+  left: 8px;
+  top: -100px;
+  z-index: 1000;
+  padding: 6px 10px;
+  background: var(--bg-panel);
+  color: var(--phosphor);
+  border: 1px solid var(--phosphor-dim);
+  text-decoration: none;
+}
+.skip-link:focus { top: 8px; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
