@@ -43,6 +43,15 @@ Prepend a new object to the `posts` array in `data/posts.json`:
 `timestamp` is ISO-8601. The page sorts by timestamp, so file order doesn't matter.
 Blank lines (`\n\n`) in `body` become separate paragraphs.
 
+After adding a post, rebuild the Atom feed (`feed.xml`, linked from the page head):
+
+```bash
+python3 scripts/build_feed.py
+```
+
+`--check` exits non-zero if `feed.xml` is stale. Entries link to `#log-<id>`, which the
+page scrolls to once the feed has rendered.
+
 ### Photos: web copies
 
 Posts and the VISUAL ID gallery render a downscaled copy from `media/web/` and link

@@ -624,7 +624,8 @@ function renderFeed(posts) {
     return;
   }
   el.innerHTML = list.map((post) => `
-    <article class="log-entry">
+    <article class="log-entry"${post.id && /^[A-Za-z0-9_-]+$/.test(post.id)
+      ? ` id="log-${esc(post.id)}"` : ""}>
       <div class="meta">[${esc(fmtStamp(post.timestamp))}] &mdash; LOG ENTRY${
         post.id ? " #" + esc(post.id) : ""}</div>
       <h2 class="title">${esc(post.title || "(untitled)")}</h2>
@@ -894,6 +895,12 @@ function initTransmissions() {
     applyStatus(status);
     renderIdentity(identity);     // MUST precede renderFeed - it fills identityFiles
     renderFeed(posts);
+    // Entries are drawn after load, so the browser's own #log-NNNN jump (from the
+    // Atom feed's links) found nothing. Do it now that the target exists.
+    if (/^#log-[A-Za-z0-9_-]+$/.test(location.hash)) {
+      const target = document.getElementById(location.hash.slice(1));
+      if (target) target.scrollIntoView();
+    }
     renderScan(scan);
     setInterval(pollStatus, STATUS_POLL_SEC * 1000);
   } catch (err) {

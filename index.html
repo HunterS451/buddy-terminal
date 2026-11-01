@@ -5,6 +5,23 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>BUDDY // TERMINAL</title>
   <meta name="description" content="BuddyTheRobot's public terminal — live status readout and log feed.">
+  <link rel="canonical" href="https://hunters451.github.io/buddy-terminal/">
+  <meta name="theme-color" content="#050805">
+  <meta name="color-scheme" content="dark">
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="alternate" type="application/atom+xml" title="BUDDY // TERMINAL — log feed" href="feed.xml">
+
+  <!-- Link previews (Open Graph / Twitter). The image is a real photo of the unit. -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="BUDDY // TERMINAL">
+  <meta property="og:title" content="BUDDY // TERMINAL">
+  <meta property="og:description" content="BuddyTheRobot's public terminal — live status readout and log feed.">
+  <meta property="og:url" content="https://hunters451.github.io/buddy-terminal/">
+  <meta property="og:image" content="https://hunters451.github.io/buddy-terminal/media/web/IMG_3064.jpeg">
+  <meta property="og:image:width" content="1600">
+  <meta property="og:image:height" content="1200">
+  <meta property="og:image:alt" content="Front view of the tracked robot, camera below the LiDAR sensor.">
+  <meta name="twitter:card" content="summary_large_image">
 
   <!-- Retro terminal fonts. Falls back to the system monospace stack if offline. -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,6 +31,7 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <a class="skip-link" href="#feed">Skip to log feed</a>
   <!-- Scanline + screen-curvature overlay. Purely decorative, never intercepts input. -->
   <div class="crt-overlay" aria-hidden="true"></div>
 
@@ -51,7 +69,7 @@
     </section>
 
     <!-- ===================== POST FEED ===================== -->
-    <section class="panel feed" id="feed" aria-label="Log feed">
+    <section class="panel feed" id="feed" aria-label="Log feed" tabindex="-1">
       <div class="panel-title"><span class="prompt">&gt;</span> LOG FEED &mdash; newest first</div>
       <div class="feed-body" id="feed-body">
         <div class="loading">// reading log entries&hellip;</div>
@@ -116,6 +134,11 @@
        no tracking, and no number shown. -->
   <script data-goatcounter="https://hunter451.goatcounter.com/count"
           async src="//gc.zgo.at/count.js"></script>
+
+  <noscript>
+    <div class="panel"><div class="error">// This terminal needs JavaScript to read its data files.
+      The log is also available as a feed: <a href="feed.xml">feed.xml</a>.</div></div>
+  </noscript>
 
   <script src="js/app.js"></script>
 </body>
