@@ -260,3 +260,14 @@ serve.
 The retro fonts (Share Tech Mono, VT323) load from Google Fonts. If they can't load
 (offline, or a locked-down network), the CSS falls back to the system monospace stack
 — the layout and colors are unaffected, only the exact letterforms change.
+
+## Checks / CI
+
+```bash
+node scripts/check.mjs
+```
+
+Validates `data/*.json` (shape, timestamps, unique ids), every referenced media file
+(exists, matches the `MEDIA_OK` pattern, ≤ 12 MB), `js/app.js` syntax, and local
+references in `index.html`/CSS. Runs on every push to `main` and every PR via
+`.github/workflows/check.yml`.
