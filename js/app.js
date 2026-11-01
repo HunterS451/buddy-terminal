@@ -338,12 +338,21 @@ const MEDIA_OK = /^media\/(?:web\/)?[A-Za-z0-9._-]+\.(jpe?g|png|gif|webp)$/i;
      web   an optional downscaled copy used for the on-page render
    `web` is validated separately and dropped if unusable, so a bad or missing
    downscale silently falls back to showing the original rather than a broken img. */
+/* Intrinsic pixel size of the RENDERED image (the web copy when there is one).
+   Optional; when both are present the <img> reserves its box before it loads,
+   so the feed doesn't jump as photos arrive. Anything not a sane integer is 0. */
+function dim(v) {
+  const n = Number(v);
+  return Number.isInteger(n) && n > 0 && n <= 20000 ? n : 0;
+}
+
 function mediaEntries(post) {
   const raw = Array.isArray(post.media) ? post.media : [];
   return raw
     .map((m) => (typeof m === "string" ? { file: m, caption: "" } : (m || {})))
     .map((m) => ({ file: String(m.file || ""), web: String(m.web || ""),
-                   caption: String(m.caption || "") }))
+                   caption: String(m.caption || ""),
+                   width: dim(m.width), height: dim(m.height) }))
     .filter((m) => MEDIA_OK.test(m.file))
     .map((m) => (MEDIA_OK.test(m.web) ? m : { ...m, web: "" }));
 }
@@ -383,7 +392,9 @@ function renderPhotos(post, { skipIdentity = false } = {}) {
       <figure class="photo">
         <a class="photo-frame" href="${esc(m.file)}" target="_blank" rel="noopener"
            aria-label="Open photograph ${i + 1} full size">
-          <img src="${esc(m.web || m.file)}" alt="${esc(cap)}" loading="lazy" decoding="async">
+          <img src="${esc(m.web || m.file)}" alt="${esc(cap)}"${
+            m.width && m.height ? ` width="${m.width}" height="${m.height}"` : ""
+          } loading="lazy" decoding="async">
           <span class="photo-scan" aria-hidden="true"></span>
           <span class="photo-tag" aria-hidden="true">IMG.${pad(i + 1)}</span>
         </a>
