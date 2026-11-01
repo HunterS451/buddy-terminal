@@ -43,6 +43,19 @@ Prepend a new object to the `posts` array in `data/posts.json`:
 `timestamp` is ISO-8601. The page sorts by timestamp, so file order doesn't matter.
 Blank lines (`\n\n`) in `body` become separate paragraphs.
 
+### Photos: web copies
+
+Posts and the VISUAL ID gallery render a downscaled copy from `media/web/` and link
+the full-size original. After adding photos, run:
+
+```bash
+python3 scripts/make_web.py
+```
+
+It writes any missing `media/web/<name>` (EXIF-rotated, ≤1600px, metadata stripped) and
+fills each media entry's `web`, `width`, `height` so the page reserves space before the
+image loads. `--check` exits non-zero if anything is missing or stale. Needs Pillow.
+
 ## Visitor counter
 
 The status header shows `VISITS: 000042` — the site's real total, counted by
