@@ -284,3 +284,17 @@ Validates `data/*.json` (shape, timestamps, unique ids), every referenced media 
 (exists, matches the `MEDIA_OK` pattern, ≤ 12 MB), `js/app.js` syntax, and local
 references in `index.html`/CSS. Runs on every push to `main` and every PR via
 `.github/workflows/check.yml`.
+
+## Tests
+
+```bash
+npm ci
+npx playwright install chromium
+npm test
+```
+
+Playwright smoke tests in `tests/` (desktop + mobile viewports) serve the folder with
+`python3 -m http.server` and stub the data files and third parties: feed ordering,
+liveness (fresh / stale / unknown), visit counter (dashed vs real), HTML escaping, media
+path guard, VISUAL ID de-duplication, failure states, no horizontal scroll. CI:
+`.github/workflows/e2e.yml`. `package.json` is dev tooling only; the site has no build.
